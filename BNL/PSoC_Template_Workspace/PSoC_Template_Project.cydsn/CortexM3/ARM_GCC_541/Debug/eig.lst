@@ -1,0 +1,4218 @@
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 1
+
+
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"eig.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.global	__aeabi_fmul
+  20              		.global	__aeabi_fadd
+  21              		.section	.text.compute_rayleigh_quotient,"ax",%progbits
+  22              		.align	2
+  23              		.thumb
+  24              		.thumb_func
+  25              		.type	compute_rayleigh_quotient, %function
+  26              	compute_rayleigh_quotient:
+  27              	.LFB4:
+  28              		.file 1 "eig.c"
+   1:eig.c         **** /**************************************************************************//**
+   2:eig.c         ****  *
+   3:eig.c         ****  * @file   eig.c
+   4:eig.c         ****  * @author David DeBaun
+   5:eig.c         ****  * @date   11/2/2015
+   6:eig.c         ****  *
+   7:eig.c         ****  * @brief This module performs eigen decomposition of a symmetric matrix into  
+   8:eig.c         ****  * its principle components. 
+   9:eig.c         ****  * 
+  10:eig.c         ****  * @copyright
+  11:eig.c         ****  * WiTricity Corporation
+  12:eig.c         ****  * CONFIDENTIAL AND PROPRIETARY
+  13:eig.c         ****  * Copyright 2015 WiTricity Corporation
+  14:eig.c         ****  * All Rights Reserved
+  15:eig.c         ****  *
+  16:eig.c         ****  * NOTICE:  All information contained herein is and remains the property
+  17:eig.c         ****  * of WiTricity Corporation and its licensors.  The intellectual and
+  18:eig.c         ****  * technical concepts contained herein are proprietary to WiTricity and
+  19:eig.c         ****  * may be covered by U.S. and foreign patents and patent applications,
+  20:eig.c         ****  * and are protected by trade secret and copyright law.  Dissemination of
+  21:eig.c         ****  * this information or reproduction of this material is strictly
+  22:eig.c         ****  * forbidden unless prior written permission is obtained from WiTricity.
+  23:eig.c         ****  *
+  24:eig.c         ****  *****************************************************************************/
+  25:eig.c         **** 
+  26:eig.c         **** #include "knobs.h"
+  27:eig.c         **** #include "eig.h"
+  28:eig.c         **** #include "math.h"
+  29:eig.c         **** 
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 2
+
+
+  30:eig.c         **** 
+  31:eig.c         **** // external globals
+  32:eig.c         **** extern float W1[MAT_SIZE][MAT_SIZE];                // workspace matrix 1
+  33:eig.c         **** extern float W2[MAT_SIZE][MAT_SIZE];                // workspace matrix 2
+  34:eig.c         **** extern float W3[MAT_SIZE][MAT_SIZE];                // workspace matrix 3
+  35:eig.c         **** 
+  36:eig.c         **** // static function prototypes
+  37:eig.c         **** static void power_iteration(float Phi_row[MAT_SIZE], 
+  38:eig.c         ****   float Sigma[MAT_SIZE][MAT_SIZE], float eig_vec[MAT_SIZE], const uint8 p_iter);
+  39:eig.c         **** static float compute_rayleigh_quotient(float Sigma[MAT_SIZE][MAT_SIZE], 
+  40:eig.c         ****   float eig_vec[MAT_SIZE]);
+  41:eig.c         **** static float rayleigh_quotient_iteration(float Phi_row[MAT_SIZE], 
+  42:eig.c         ****   float Sigma[MAT_SIZE][MAT_SIZE], float eig_vec[MAT_SIZE], const uint8 r_iter);
+  43:eig.c         **** static void deflation(float Deflated_Sigma[MAT_SIZE][MAT_SIZE], 
+  44:eig.c         ****   float Sigma[MAT_SIZE][MAT_SIZE], float eig_vec[MAT_SIZE], float lambda);
+  45:eig.c         **** 
+  46:eig.c         **** float dot(float a[MAT_SIZE], float b[MAT_SIZE]);
+  47:eig.c         **** 
+  48:eig.c         **** /**************************************************************************//**
+  49:eig.c         ****  * eig_decomp
+  50:eig.c         ****  *
+  51:eig.c         ****  * @brief Primary public function that accepts a symmetric 2D array, 2D of 
+  52:eig.c         ****  * initial eigenvector guesses, number of Power Iterations and Rayleigh 
+  53:eig.c         ****  * Iterations, and updates an array of eigenvalues and a 2D array of eigenvectors
+  54:eig.c         ****  * with computed eigenvalues and eigenvectors for the symmetric 2D array.
+  55:eig.c         ****  *
+  56:eig.c         ****  * @param[out] lambda Array that gets updated with PRINCIPLE_COMPONENTS number of 
+  57:eig.c         ****  * the most dominant eigenvalues for Sigma.
+  58:eig.c         ****  *
+  59:eig.c         ****  * @param[out] Phi 2D array that gets updated with PRINCIPLE_COMPONENTS number of 
+  60:eig.c         ****  * MAT_SIZE-length eigenvectors for Sigma.
+  61:eig.c         ****  *
+  62:eig.c         ****  * @param[in] Sigma 2D array representing the symmetric matrix to be decomposed.
+  63:eig.c         ****  *
+  64:eig.c         ****  * @param[in] Eig_vecs_init 2D array of the PRINCIPLE_COMPONENTS number of 
+  65:eig.c         ****  * MAT_SIZE-length initial eigenvector guesses for iteration.
+  66:eig.c         ****  *
+  67:eig.c         ****  * @param[in] p_iter Number of Power Iterations for eigen decomp.
+  68:eig.c         ****  *
+  69:eig.c         ****  * @param[in] r_iter Number of Rayleigh Quotient iterations for eigen decomp.
+  70:eig.c         ****  *
+  71:eig.c         ****  * @return Nothing.
+  72:eig.c         ****  *
+  73:eig.c         ****  *****************************************************************************/
+  74:eig.c         **** 
+  75:eig.c         **** void eig_decomp(float lambda[PRINCIPLE_COMPONENTS], 
+  76:eig.c         ****   float Phi[PRINCIPLE_COMPONENTS][MAT_SIZE], float Sigma[MAT_SIZE][MAT_SIZE], 
+  77:eig.c         ****   float Eig_vecs_init[PRINCIPLE_COMPONENTS][MAT_SIZE], const uint8 p_iter, 
+  78:eig.c         ****   const uint8 r_iter)
+  79:eig.c         **** {
+  80:eig.c         ****   uint8 i = 0;
+  81:eig.c         ****     
+  82:eig.c         ****   /* Conditionals are for flexibility in chosing any combo of Power or Rayleigh 
+  83:eig.c         ****     Iterations - can be streamlined based on system testing */
+  84:eig.c         ****   if (p_iter > 0)
+  85:eig.c         ****   {
+  86:eig.c         ****     // computing dominant eigenvector 
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 3
+
+
+  87:eig.c         ****     power_iteration(Phi[0], Sigma, Eig_vecs_init[0], p_iter);
+  88:eig.c         ****     if (0 == r_iter)
+  89:eig.c         ****     {
+  90:eig.c         ****       lambda[0] = compute_rayleigh_quotient(Sigma, Phi[0]);
+  91:eig.c         ****     }
+  92:eig.c         ****     else
+  93:eig.c         ****     { /* r_iter > 0 */
+  94:eig.c         ****       lambda[0] = rayleigh_quotient_iteration(Phi[0], Sigma, Phi[0], r_iter);
+  95:eig.c         ****     }
+  96:eig.c         ****   }
+  97:eig.c         ****   else if (r_iter > 0) 
+  98:eig.c         ****   {
+  99:eig.c         ****     lambda[0] = rayleigh_quotient_iteration(Phi[0], Sigma, Eig_vecs_init[0], r_iter);
+ 100:eig.c         ****   } /* else, p_it == 0 and r_it == 0 and Phi won't be updated */
+ 101:eig.c         ****   
+ 102:eig.c         ****   for (i = 1; i < PRINCIPLE_COMPONENTS; ++i) // loop for each remaining PC
+ 103:eig.c         ****   {
+ 104:eig.c         ****     // perform deflation on matrix to remove the dominant eigenvector component
+ 105:eig.c         ****     if (1 == i) 
+ 106:eig.c         ****     {
+ 107:eig.c         ****       // updates W1 with deflated Sigma the first time
+ 108:eig.c         ****       deflation(W1, Sigma, Phi[0], lambda[0]); 
+ 109:eig.c         ****     } 
+ 110:eig.c         ****     else 
+ 111:eig.c         ****     {
+ 112:eig.c         ****       // updates W1 with deflated W1 after the first time
+ 113:eig.c         ****       deflation(W1, W1, Phi[i-1], lambda[i-1]);
+ 114:eig.c         ****     }
+ 115:eig.c         **** 
+ 116:eig.c         ****     if (p_iter > 0) 
+ 117:eig.c         ****     {
+ 118:eig.c         ****       // computing dominant eigenvector
+ 119:eig.c         ****       power_iteration(Phi[i], W1, Eig_vecs_init[i], p_iter); 
+ 120:eig.c         ****       if (0 == r_iter) 
+ 121:eig.c         ****       {
+ 122:eig.c         ****         lambda[i] = compute_rayleigh_quotient(W1, Phi[i]);
+ 123:eig.c         ****       } 
+ 124:eig.c         ****       else 
+ 125:eig.c         ****       { /* r_iter > 0 */                
+ 126:eig.c         ****         lambda[i] = rayleigh_quotient_iteration(Phi[i], W1, Phi[i], r_iter);
+ 127:eig.c         ****       }
+ 128:eig.c         ****     } 
+ 129:eig.c         ****     else if (r_iter > 0) 
+ 130:eig.c         ****     {
+ 131:eig.c         ****       lambda[i] = rayleigh_quotient_iteration(Phi[i], W1, Eig_vecs_init[i], r_iter);
+ 132:eig.c         ****     } /* else, p_it == 0 and r_it == 0 and Phi won't be updated */
+ 133:eig.c         ****   } // end loop for each remaining PC
+ 134:eig.c         ****     
+ 135:eig.c         ****   return;
+ 136:eig.c         **** }
+ 137:eig.c         **** 
+ 138:eig.c         **** /**************************************************************************//**
+ 139:eig.c         ****  * power_iteration
+ 140:eig.c         ****  *
+ 141:eig.c         ****  * @brief Static function for performing Power Iteration method on 2D symmetric
+ 142:eig.c         ****  * matrix to compute the dominant eigenvector from an initial eigenvector guess.
+ 143:eig.c         ****  * 
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 4
+
+
+ 144:eig.c         ****  * @param[out] Phi_row Array of length MAT_SIZE that gets updated with the 
+ 145:eig.c         ****  * computed dominant eigenvector for Sigma.
+ 146:eig.c         ****  * 
+ 147:eig.c         ****  * @param[in] Sigma 2D array representing the symmetric matrix to be decomposed.
+ 148:eig.c         ****  *
+ 149:eig.c         ****  * @param[in] eig_vec MAT_SIZE-length initial eigenvector guess for iteration.
+ 150:eig.c         ****  *
+ 151:eig.c         ****  * @param[in] p_iter Number of Power Iterations for eigen decomp.
+ 152:eig.c         ****  *
+ 153:eig.c         ****  * @return Nothing, void function.
+ 154:eig.c         ****  *
+ 155:eig.c         ****  *****************************************************************************/
+ 156:eig.c         **** 
+ 157:eig.c         **** static void power_iteration(float Phi_row[MAT_SIZE], 
+ 158:eig.c         ****   float Sigma[MAT_SIZE][MAT_SIZE], float eig_vec[MAT_SIZE], const uint8 p_iter)
+ 159:eig.c         **** {
+ 160:eig.c         ****   /* 
+ 161:eig.c         ****     Performs power iteration on Sigma using initial eigenvector guess v_eig and
+ 162:eig.c         ****     updates the row of Phi at pointer Phi_row
+ 163:eig.c         ****   */
+ 164:eig.c         ****   uint8 i = 0, j = 0;
+ 165:eig.c         ****   float norm_v = 0;
+ 166:eig.c         ****   float temp_vec[MAT_SIZE] = {0};
+ 167:eig.c         ****     
+ 168:eig.c         ****   for (i = 0; i < p_iter; ++i) 
+ 169:eig.c         ****   {
+ 170:eig.c         ****     if (0 == i)
+ 171:eig.c         ****     {
+ 172:eig.c         ****     /* temp_vec = Sigma * eig_vec, Matrix-vector multiplication */
+ 173:eig.c         ****       for (j = 0; j < MAT_SIZE; ++j) 
+ 174:eig.c         ****       {
+ 175:eig.c         ****         temp_vec[j] = dot(Sigma[j], eig_vec);
+ 176:eig.c         ****       }
+ 177:eig.c         ****     }
+ 178:eig.c         ****     else
+ 179:eig.c         ****     {
+ 180:eig.c         ****     /* temp_vec = Sigma * Phi_row, Matrix-vector multiplication */
+ 181:eig.c         ****       for (j = 0; j < MAT_SIZE; ++j) 
+ 182:eig.c         ****       {
+ 183:eig.c         ****         temp_vec[j] = dot(Sigma[j], Phi_row);
+ 184:eig.c         ****       }
+ 185:eig.c         ****     }
+ 186:eig.c         ****     
+ 187:eig.c         ****     norm_v = sqrt(dot(temp_vec, temp_vec));
+ 188:eig.c         ****         
+ 189:eig.c         ****     for (j = 0; j < MAT_SIZE; ++j) 
+ 190:eig.c         ****     {
+ 191:eig.c         ****     Phi_row[j] = temp_vec[j] / norm_v;
+ 192:eig.c         ****     }
+ 193:eig.c         ****   }    
+ 194:eig.c         ****   return;
+ 195:eig.c         **** }
+ 196:eig.c         **** 
+ 197:eig.c         **** /**************************************************************************//**
+ 198:eig.c         ****  * dot
+ 199:eig.c         ****  *
+ 200:eig.c         ****  * @brief Public function for computing dot product of two MAT_SIZE-length 
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 5
+
+
+ 201:eig.c         ****  * arrays.
+ 202:eig.c         ****  * 
+ 203:eig.c         ****  * @param[in] a One array of length MAT_SIZE.
+ 204:eig.c         ****  * 
+ 205:eig.c         ****  * @param[in] b One array of length MAT_SIZE.
+ 206:eig.c         ****  *
+ 207:eig.c         ****  * @return c Scalar dot product of the two arrays.
+ 208:eig.c         ****  *
+ 209:eig.c         ****  *****************************************************************************/
+ 210:eig.c         **** 
+ 211:eig.c         **** float dot(float a[MAT_SIZE], float b[MAT_SIZE])
+ 212:eig.c         **** {
+ 213:eig.c         ****   /* Returns the dot product of float arrays of length MAT_SIZE at pointers "a"
+ 214:eig.c         ****     and "b" in scalar float "c"  */
+ 215:eig.c         ****     
+ 216:eig.c         ****   uint8 i = 0;
+ 217:eig.c         ****   float c = 0;
+ 218:eig.c         ****         
+ 219:eig.c         ****   for (i = 0; i < MAT_SIZE; ++i) 
+ 220:eig.c         ****   {
+ 221:eig.c         ****     c += a[i] * b[i];
+ 222:eig.c         ****   }
+ 223:eig.c         ****     
+ 224:eig.c         ****   return c;
+ 225:eig.c         **** }
+ 226:eig.c         **** 
+ 227:eig.c         **** /**************************************************************************//**
+ 228:eig.c         ****  * compute_rayleigh_quotient
+ 229:eig.c         ****  *
+ 230:eig.c         ****  * @brief Static function for computing Rayleigh Quotient for symmetric matrix
+ 231:eig.c         ****  * and a vector. Used by Power Iteration and Rayleigh Iteration.
+ 232:eig.c         ****  *
+ 233:eig.c         ****  * @param[in] Sigma 2D array of dimension MAT_SIZE x MAT_SIZE.
+ 234:eig.c         ****  * 
+ 235:eig.c         ****  * @param[in] eig_vec One array of length MAT_SIZE.
+ 236:eig.c         ****  *
+ 237:eig.c         ****  * @return lambda_l Scalar value representing Rayleigh Quotient.
+ 238:eig.c         ****  *
+ 239:eig.c         ****  *****************************************************************************/
+ 240:eig.c         **** 
+ 241:eig.c         **** static float compute_rayleigh_quotient(float Sigma[MAT_SIZE][MAT_SIZE], 
+ 242:eig.c         ****   float eig_vec[MAT_SIZE])
+ 243:eig.c         **** {
+  29              		.loc 1 243 0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              	.LVL0:
+  34 0000 2DE9F84F 		push	{r3, r4, r5, r6, r7, r8, r9, r10, fp, lr}
+  35              		.cfi_def_cfa_offset 40
+  36              		.cfi_offset 3, -40
+  37              		.cfi_offset 4, -36
+  38              		.cfi_offset 5, -32
+  39              		.cfi_offset 6, -28
+  40              		.cfi_offset 7, -24
+  41              		.cfi_offset 8, -20
+  42              		.cfi_offset 9, -16
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 6
+
+
+  43              		.cfi_offset 10, -12
+  44              		.cfi_offset 11, -8
+  45              		.cfi_offset 14, -4
+  46 0004 8346     		mov	fp, r0
+  47 0006 8846     		mov	r8, r1
+  48              	.LVL1:
+ 244:eig.c         ****   /* % calculate Rayleigh quotient, lambda_l
+ 245:eig.c         ****   lambda_l = eig_vec_T * Sigma * eig_vec, for Sigma symmetric */
+ 246:eig.c         ****     
+ 247:eig.c         ****   uint8 i = 0, j = 0;
+ 248:eig.c         ****   float lambda_l = 0, temp = 0;
+  49              		.loc 1 248 0
+  50 0008 0024     		movs	r4, #0
+ 249:eig.c         ****         
+ 250:eig.c         ****   for (i = 0; i < MAT_SIZE; ++i) 
+  51              		.loc 1 250 0
+  52 000a 4FF00009 		mov	r9, #0
+  53 000e 33E0     		b	.L2
+  54              	.LVL2:
+  55              	.L5:
+ 251:eig.c         ****   {
+ 252:eig.c         ****     lambda_l += Sigma[i][i] * eig_vec[i] * eig_vec[i];
+  56              		.loc 1 252 0
+  57 0010 0BEBC917 		add	r7, fp, r9, lsl #7
+  58 0014 58F82960 		ldr	r6, [r8, r9, lsl #2]	@ float
+  59 0018 3146     		mov	r1, r6
+  60 001a 57F82900 		ldr	r0, [r7, r9, lsl #2]	@ float
+  61 001e FFF7FEFF 		bl	__aeabi_fmul
+  62              	.LVL3:
+  63 0022 0146     		mov	r1, r0
+  64 0024 3046     		mov	r0, r6
+  65 0026 FFF7FEFF 		bl	__aeabi_fmul
+  66              	.LVL4:
+  67 002a 0146     		mov	r1, r0
+  68 002c 2046     		mov	r0, r4
+  69 002e FFF7FEFF 		bl	__aeabi_fadd
+  70              	.LVL5:
+  71 0032 8246     		mov	r10, r0
+  72              	.LVL6:
+ 253:eig.c         ****       for (j = i+1; j < MAT_SIZE; ++j) 
+  73              		.loc 1 253 0
+  74 0034 09F10109 		add	r9, r9, #1
+  75              	.LVL7:
+  76 0038 5FFA89F9 		uxtb	r9, r9
+  77              	.LVL8:
+  78 003c 4C46     		mov	r4, r9
+  79 003e 0025     		movs	r5, #0
+  80 0040 0FE0     		b	.L3
+  81              	.LVL9:
+  82              	.L4:
+ 254:eig.c         ****       {
+ 255:eig.c         ****         temp += Sigma[i][j] * eig_vec[i] * eig_vec[j];
+  83              		.loc 1 255 0 discriminator 3
+  84 0042 57F82410 		ldr	r1, [r7, r4, lsl #2]	@ float
+  85 0046 3046     		mov	r0, r6
+  86 0048 FFF7FEFF 		bl	__aeabi_fmul
+  87              	.LVL10:
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 7
+
+
+  88 004c 58F82410 		ldr	r1, [r8, r4, lsl #2]	@ float
+  89 0050 FFF7FEFF 		bl	__aeabi_fmul
+  90              	.LVL11:
+  91 0054 0146     		mov	r1, r0
+  92 0056 2846     		mov	r0, r5
+  93 0058 FFF7FEFF 		bl	__aeabi_fadd
+  94              	.LVL12:
+  95 005c 0546     		mov	r5, r0
+  96              	.LVL13:
+ 253:eig.c         ****       for (j = i+1; j < MAT_SIZE; ++j) 
+  97              		.loc 1 253 0 discriminator 3
+  98 005e 0134     		adds	r4, r4, #1
+  99              	.LVL14:
+ 100 0060 E4B2     		uxtb	r4, r4
+ 101              	.LVL15:
+ 102              	.L3:
+ 253:eig.c         ****       for (j = i+1; j < MAT_SIZE; ++j) 
+ 103              		.loc 1 253 0 is_stmt 0 discriminator 1
+ 104 0062 1F2C     		cmp	r4, #31
+ 105 0064 EDD9     		bls	.L4
+ 256:eig.c         ****       }
+ 257:eig.c         ****     lambda_l += 2 * temp;
+ 106              		.loc 1 257 0 is_stmt 1 discriminator 2
+ 107 0066 2946     		mov	r1, r5
+ 108 0068 2846     		mov	r0, r5
+ 109 006a FFF7FEFF 		bl	__aeabi_fadd
+ 110              	.LVL16:
+ 111 006e 0146     		mov	r1, r0
+ 112 0070 5046     		mov	r0, r10
+ 113 0072 FFF7FEFF 		bl	__aeabi_fadd
+ 114              	.LVL17:
+ 115 0076 0446     		mov	r4, r0
+ 116              	.LVL18:
+ 117              	.L2:
+ 250:eig.c         ****   {
+ 118              		.loc 1 250 0 discriminator 1
+ 119 0078 B9F11F0F 		cmp	r9, #31
+ 120 007c C8D9     		bls	.L5
+ 258:eig.c         ****     temp = 0;   
+ 259:eig.c         ****   }
+ 260:eig.c         ****     
+ 261:eig.c         ****   return lambda_l;
+ 262:eig.c         **** }
+ 121              		.loc 1 262 0
+ 122 007e 2046     		mov	r0, r4
+ 123 0080 BDE8F88F 		pop	{r3, r4, r5, r6, r7, r8, r9, r10, fp, pc}
+ 124              		.cfi_endproc
+ 125              	.LFE4:
+ 126              		.size	compute_rayleigh_quotient, .-compute_rayleigh_quotient
+ 127              		.global	__aeabi_fsub
+ 128              		.section	.text.deflation,"ax",%progbits
+ 129              		.align	2
+ 130              		.thumb
+ 131              		.thumb_func
+ 132              		.type	deflation, %function
+ 133              	deflation:
+ 134              	.LFB6:
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 8
+
+
+ 263:eig.c         **** 
+ 264:eig.c         **** /**************************************************************************//**
+ 265:eig.c         ****  * rayleigh_quotient_iteration
+ 266:eig.c         ****  *
+ 267:eig.c         ****  * @brief Static function for performing Rayleigh Quotient Iteration method on 
+ 268:eig.c         ****  * 2D symmetric matrix to compute dominant eigenvector and eigenvalue using an
+ 269:eig.c         ****  * initial eigenvector guess.
+ 270:eig.c         ****  * 
+ 271:eig.c         ****  * @param[out] Phi_row Array of length MAT_SIZE that gets updated with the 
+ 272:eig.c         ****  * final computed dominant eigenvector result.
+ 273:eig.c         ****  * 
+ 274:eig.c         ****  * @param[in] Sigma 2D array representing the symmetric matrix to be decomposed.
+ 275:eig.c         ****  *
+ 276:eig.c         ****  * @param[in] eig_vec MAT_SIZE-length initial eigenvector guess for iteration.
+ 277:eig.c         ****  *
+ 278:eig.c         ****  * @param[in] r_iter Number of Rayleigh Quotient Iterations for eigen decomp.
+ 279:eig.c         ****  *
+ 280:eig.c         ****  * @return lambda_l Dominant computed eigenvalue.
+ 281:eig.c         ****  *
+ 282:eig.c         ****  *****************************************************************************/
+ 283:eig.c         **** 
+ 284:eig.c         **** static float rayleigh_quotient_iteration(float Phi_row[MAT_SIZE], 
+ 285:eig.c         ****   float Sigma[MAT_SIZE][MAT_SIZE], float eig_vec[MAT_SIZE], const uint8 r_iter)
+ 286:eig.c         **** {
+ 287:eig.c         ****   uint8 i = 0, j = 0, k = 0;
+ 288:eig.c         ****   float lambda_l = 0, norm_v = 0;
+ 289:eig.c         ****   float temp_vec[MAT_SIZE] = {0};
+ 290:eig.c         ****      
+ 291:eig.c         ****   /* compute Rayleigh's quotient initial time */
+ 292:eig.c         ****   lambda_l = compute_rayleigh_quotient(Sigma, eig_vec);
+ 293:eig.c         ****     
+ 294:eig.c         ****   for (i = 0; i < r_iter; ++i)
+ 295:eig.c         ****   {
+ 296:eig.c         ****     /* W2 = Sigma - lambda_l * I, where I is identity matrix */
+ 297:eig.c         ****     for (j = 0; j < MAT_SIZE; ++j) /* loop over rows */
+ 298:eig.c         ****     {  
+ 299:eig.c         ****       for (k = 0; k < MAT_SIZE; ++k) /* loop over columns */
+ 300:eig.c         ****       {
+ 301:eig.c         ****         if (j == k) /* subtract lambda_l from the diagonal elements */
+ 302:eig.c         ****         {
+ 303:eig.c         ****           W2[j][j] = Sigma[j][j] - lambda_l;
+ 304:eig.c         ****         }
+ 305:eig.c         ****         else
+ 306:eig.c         ****         {
+ 307:eig.c         ****           W2[j][k] = Sigma[j][k];
+ 308:eig.c         ****         }
+ 309:eig.c         ****       } /* end looping over columns */
+ 310:eig.c         ****     } /* end looping over rows */
+ 311:eig.c         ****         
+ 312:eig.c         ****     //Invert_Sigma(W2, W3, 0);
+ 313:eig.c         ****     /* looks like Invert_Sigma requires 2 separate
+ 314:eig.c         ****                  workspace matrices, and we don't want to modify Sigma or W1 */
+ 315:eig.c         ****     
+ 316:eig.c         ****     invert_matrix(W2, W3); // modified version of Invert_Sigma
+ 317:eig.c         ****     
+ 318:eig.c         ****     /*  temp_vec = Inv_Matrix * eig_vec, Matrix-vector multiplication */
+ 319:eig.c         ****     
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 9
+
+
+ 320:eig.c         ****     if (0 == i) // first time...
+ 321:eig.c         ****     {
+ 322:eig.c         ****       for (j = 0; j < MAT_SIZE; ++j)
+ 323:eig.c         ****       {
+ 324:eig.c         ****         temp_vec[j] = dot(W3[j], eig_vec); // ...start with eig_vec initial guess
+ 325:eig.c         ****       }
+ 326:eig.c         ****     }
+ 327:eig.c         ****     else // after first time...
+ 328:eig.c         ****     {
+ 329:eig.c         ****       for (j = 0; j < MAT_SIZE; ++j)
+ 330:eig.c         ****       {
+ 331:eig.c         ****         temp_vec[j] = dot(W3[j], Phi_row); //...feedback the previous result 
+ 332:eig.c         ****       }
+ 333:eig.c         ****     }
+ 334:eig.c         ****     
+ 335:eig.c         ****     /* compute norm for normalization */
+ 336:eig.c         ****     norm_v = sqrt(dot(temp_vec, temp_vec));
+ 337:eig.c         ****         
+ 338:eig.c         ****     /* normalize */
+ 339:eig.c         ****     for (j = 0; j < MAT_SIZE; ++j) 
+ 340:eig.c         ****     {
+ 341:eig.c         ****       Phi_row[j] = temp_vec[j] / norm_v;
+ 342:eig.c         ****     }
+ 343:eig.c         ****         
+ 344:eig.c         ****     /* compute Rayleigh's quotient */
+ 345:eig.c         ****     lambda_l = compute_rayleigh_quotient(Sigma, Phi_row);
+ 346:eig.c         ****     
+ 347:eig.c         ****   } /* end looping through Rayleigh Iterations */
+ 348:eig.c         ****     
+ 349:eig.c         ****   return lambda_l;
+ 350:eig.c         **** }
+ 351:eig.c         **** 
+ 352:eig.c         **** /**************************************************************************//**
+ 353:eig.c         ****  * deflation
+ 354:eig.c         ****  *
+ 355:eig.c         ****  * @brief Static function for performing Hotelling's Deflation on matrix Sigma.
+ 356:eig.c         ****  * Subtracts out the component from Sigma corresponding to the dominant 
+ 357:eig.c         ****  * eigenpair.
+ 358:eig.c         ****  *
+ 359:eig.c         ****  * @param[out] Deflated_Sigma 2D array of dimension MAT_SIZE x MAT_SIZE 
+ 360:eig.c         ****  * containing result of the deflation.
+ 361:eig.c         ****  * 
+ 362:eig.c         ****  * @param[in] Sigma 2D array of dimension MAT_SIZE x MAT_SIZE to be operated on
+ 363:eig.c         ****  * by deflation.
+ 364:eig.c         ****  *
+ 365:eig.c         ****  * @param[in] eig_vec Array representing the dominant eigenvector of Sigma.
+ 366:eig.c         ****  *
+ 367:eig.c         ****  * @param[in] lambda Scalar representing the dominant eigenvalue of Sigma.
+ 368:eig.c         ****  *
+ 369:eig.c         ****  * @return Nothing.
+ 370:eig.c         ****  *
+ 371:eig.c         ****  *****************************************************************************/
+ 372:eig.c         **** 
+ 373:eig.c         **** static void deflation(float Deflated_Sigma[MAT_SIZE][MAT_SIZE], 
+ 374:eig.c         ****   float Sigma[MAT_SIZE][MAT_SIZE], float eig_vec[MAT_SIZE], float lambda)
+ 375:eig.c         **** {
+ 135              		.loc 1 375 0
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 10
+
+
+ 136              		.cfi_startproc
+ 137              		@ args = 0, pretend = 0, frame = 0
+ 138              		@ frame_needed = 0, uses_anonymous_args = 0
+ 139              	.LVL19:
+ 140 0000 2DE9F84F 		push	{r3, r4, r5, r6, r7, r8, r9, r10, fp, lr}
+ 141              		.cfi_def_cfa_offset 40
+ 142              		.cfi_offset 3, -40
+ 143              		.cfi_offset 4, -36
+ 144              		.cfi_offset 5, -32
+ 145              		.cfi_offset 6, -28
+ 146              		.cfi_offset 7, -24
+ 147              		.cfi_offset 8, -20
+ 148              		.cfi_offset 9, -16
+ 149              		.cfi_offset 10, -12
+ 150              		.cfi_offset 11, -8
+ 151              		.cfi_offset 14, -4
+ 152 0004 8246     		mov	r10, r0
+ 153 0006 8946     		mov	r9, r1
+ 154 0008 1646     		mov	r6, r2
+ 155 000a 9846     		mov	r8, r3
+ 156              	.LVL20:
+ 376:eig.c         ****   uint8 i = 0, j = 0;
+ 377:eig.c         ****     
+ 378:eig.c         ****   for (i = 0; i < MAT_SIZE; ++i) 
+ 157              		.loc 1 378 0
+ 158 000c 0025     		movs	r5, #0
+ 159 000e 1CE0     		b	.L8
+ 160              	.LVL21:
+ 161              	.L9:
+ 379:eig.c         ****   {
+ 380:eig.c         ****     for (j = 0; j < MAT_SIZE; ++j) 
+ 381:eig.c         ****     {
+ 382:eig.c         ****       Deflated_Sigma[i][j] = Sigma[i][j] - lambda * eig_vec[i] * eig_vec[j];
+ 162              		.loc 1 382 0 discriminator 3
+ 163 0010 EB01     		lsls	r3, r5, #7
+ 164 0012 0AEB0307 		add	r7, r10, r3
+ 165 0016 4B44     		add	r3, r3, r9
+ 166 0018 53F824B0 		ldr	fp, [r3, r4, lsl #2]	@ float
+ 167 001c 4146     		mov	r1, r8
+ 168 001e 56F82500 		ldr	r0, [r6, r5, lsl #2]	@ float
+ 169 0022 FFF7FEFF 		bl	__aeabi_fmul
+ 170              	.LVL22:
+ 171 0026 56F82410 		ldr	r1, [r6, r4, lsl #2]	@ float
+ 172 002a FFF7FEFF 		bl	__aeabi_fmul
+ 173              	.LVL23:
+ 174 002e 0146     		mov	r1, r0
+ 175 0030 5846     		mov	r0, fp
+ 176 0032 FFF7FEFF 		bl	__aeabi_fsub
+ 177              	.LVL24:
+ 178 0036 47F82400 		str	r0, [r7, r4, lsl #2]	@ float
+ 380:eig.c         ****     {
+ 179              		.loc 1 380 0 discriminator 3
+ 180 003a 0134     		adds	r4, r4, #1
+ 181              	.LVL25:
+ 182 003c E4B2     		uxtb	r4, r4
+ 183              	.LVL26:
+ 184 003e 00E0     		b	.L10
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 11
+
+
+ 185              	.LVL27:
+ 186              	.L11:
+ 187 0040 0024     		movs	r4, #0
+ 188              	.L10:
+ 189              	.LVL28:
+ 380:eig.c         ****     {
+ 190              		.loc 1 380 0 is_stmt 0 discriminator 1
+ 191 0042 1F2C     		cmp	r4, #31
+ 192 0044 E4D9     		bls	.L9
+ 378:eig.c         ****   {
+ 193              		.loc 1 378 0 is_stmt 1 discriminator 2
+ 194 0046 0135     		adds	r5, r5, #1
+ 195              	.LVL29:
+ 196 0048 EDB2     		uxtb	r5, r5
+ 197              	.LVL30:
+ 198              	.L8:
+ 378:eig.c         ****   {
+ 199              		.loc 1 378 0 is_stmt 0 discriminator 1
+ 200 004a 1F2D     		cmp	r5, #31
+ 201 004c F8D9     		bls	.L11
+ 383:eig.c         ****     }
+ 384:eig.c         ****   }  
+ 385:eig.c         **** }
+ 202              		.loc 1 385 0 is_stmt 1
+ 203 004e BDE8F88F 		pop	{r3, r4, r5, r6, r7, r8, r9, r10, fp, pc}
+ 204              		.cfi_endproc
+ 205              	.LFE6:
+ 206              		.size	deflation, .-deflation
+ 207 0052 00BF     		.section	.text.dot,"ax",%progbits
+ 208              		.align	2
+ 209              		.global	dot
+ 210              		.thumb
+ 211              		.thumb_func
+ 212              		.type	dot, %function
+ 213              	dot:
+ 214              	.LFB3:
+ 212:eig.c         ****   /* Returns the dot product of float arrays of length MAT_SIZE at pointers "a"
+ 215              		.loc 1 212 0
+ 216              		.cfi_startproc
+ 217              		@ args = 0, pretend = 0, frame = 0
+ 218              		@ frame_needed = 0, uses_anonymous_args = 0
+ 219              	.LVL31:
+ 220 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 221              		.cfi_def_cfa_offset 24
+ 222              		.cfi_offset 3, -24
+ 223              		.cfi_offset 4, -20
+ 224              		.cfi_offset 5, -16
+ 225              		.cfi_offset 6, -12
+ 226              		.cfi_offset 7, -8
+ 227              		.cfi_offset 14, -4
+ 228 0002 0746     		mov	r7, r0
+ 229 0004 0E46     		mov	r6, r1
+ 230              	.LVL32:
+ 217:eig.c         ****         
+ 231              		.loc 1 217 0
+ 232 0006 0025     		movs	r5, #0
+ 219:eig.c         ****   {
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 12
+
+
+ 233              		.loc 1 219 0
+ 234 0008 0024     		movs	r4, #0
+ 235 000a 0CE0     		b	.L14
+ 236              	.LVL33:
+ 237              	.L15:
+ 221:eig.c         ****   }
+ 238              		.loc 1 221 0 discriminator 3
+ 239 000c 56F82410 		ldr	r1, [r6, r4, lsl #2]	@ float
+ 240 0010 57F82400 		ldr	r0, [r7, r4, lsl #2]	@ float
+ 241 0014 FFF7FEFF 		bl	__aeabi_fmul
+ 242              	.LVL34:
+ 243 0018 0146     		mov	r1, r0
+ 244 001a 2846     		mov	r0, r5
+ 245 001c FFF7FEFF 		bl	__aeabi_fadd
+ 246              	.LVL35:
+ 247 0020 0546     		mov	r5, r0
+ 248              	.LVL36:
+ 219:eig.c         ****   {
+ 249              		.loc 1 219 0 discriminator 3
+ 250 0022 0134     		adds	r4, r4, #1
+ 251              	.LVL37:
+ 252 0024 E4B2     		uxtb	r4, r4
+ 253              	.LVL38:
+ 254              	.L14:
+ 219:eig.c         ****   {
+ 255              		.loc 1 219 0 is_stmt 0 discriminator 1
+ 256 0026 1F2C     		cmp	r4, #31
+ 257 0028 F0D9     		bls	.L15
+ 225:eig.c         **** 
+ 258              		.loc 1 225 0 is_stmt 1
+ 259 002a 2846     		mov	r0, r5
+ 260 002c F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 261              		.cfi_endproc
+ 262              	.LFE3:
+ 263              		.size	dot, .-dot
+ 264              		.global	__aeabi_f2d
+ 265              		.global	__aeabi_d2f
+ 266              		.global	__aeabi_fdiv
+ 267 002e 00BF     		.section	.text.power_iteration,"ax",%progbits
+ 268              		.align	2
+ 269              		.thumb
+ 270              		.thumb_func
+ 271              		.type	power_iteration, %function
+ 272              	power_iteration:
+ 273              	.LFB2:
+ 159:eig.c         ****   /* 
+ 274              		.loc 1 159 0
+ 275              		.cfi_startproc
+ 276              		@ args = 0, pretend = 0, frame = 128
+ 277              		@ frame_needed = 0, uses_anonymous_args = 0
+ 278              	.LVL39:
+ 279 0000 2DE9F047 		push	{r4, r5, r6, r7, r8, r9, r10, lr}
+ 280              		.cfi_def_cfa_offset 32
+ 281              		.cfi_offset 4, -32
+ 282              		.cfi_offset 5, -28
+ 283              		.cfi_offset 6, -24
+ 284              		.cfi_offset 7, -20
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 13
+
+
+ 285              		.cfi_offset 8, -16
+ 286              		.cfi_offset 9, -12
+ 287              		.cfi_offset 10, -8
+ 288              		.cfi_offset 14, -4
+ 289 0004 A0B0     		sub	sp, sp, #128
+ 290              		.cfi_def_cfa_offset 160
+ 291 0006 0546     		mov	r5, r0
+ 292 0008 0E46     		mov	r6, r1
+ 293 000a 9146     		mov	r9, r2
+ 294 000c 9846     		mov	r8, r3
+ 295              	.LVL40:
+ 166:eig.c         ****     
+ 296              		.loc 1 166 0
+ 297 000e 8022     		movs	r2, #128
+ 298              	.LVL41:
+ 299 0010 0021     		movs	r1, #0
+ 300              	.LVL42:
+ 301 0012 6846     		mov	r0, sp
+ 302              	.LVL43:
+ 303 0014 FFF7FEFF 		bl	memset
+ 304              	.LVL44:
+ 168:eig.c         ****   {
+ 305              		.loc 1 168 0
+ 306 0018 0027     		movs	r7, #0
+ 307 001a 40E0     		b	.L18
+ 308              	.LVL45:
+ 309              	.L26:
+ 170:eig.c         ****     {
+ 310              		.loc 1 170 0
+ 311 001c 77B1     		cbz	r7, .L27
+ 312 001e 0024     		movs	r4, #0
+ 313 0020 1CE0     		b	.L20
+ 314              	.LVL46:
+ 315              	.L21:
+ 175:eig.c         ****       }
+ 316              		.loc 1 175 0 discriminator 3
+ 317 0022 4946     		mov	r1, r9
+ 318 0024 06EBC410 		add	r0, r6, r4, lsl #7
+ 319 0028 FFF7FEFF 		bl	dot
+ 320              	.LVL47:
+ 321 002c 20AB     		add	r3, sp, #128
+ 322 002e 03EB8403 		add	r3, r3, r4, lsl #2
+ 323 0032 43F8800C 		str	r0, [r3, #-128]	@ float
+ 173:eig.c         ****       {
+ 324              		.loc 1 173 0 discriminator 3
+ 325 0036 0134     		adds	r4, r4, #1
+ 326              	.LVL48:
+ 327 0038 E4B2     		uxtb	r4, r4
+ 328              	.LVL49:
+ 329 003a 00E0     		b	.L19
+ 330              	.LVL50:
+ 331              	.L27:
+ 332 003c 0024     		movs	r4, #0
+ 333              	.L19:
+ 334              	.LVL51:
+ 173:eig.c         ****       {
+ 335              		.loc 1 173 0 is_stmt 0 discriminator 1
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 14
+
+
+ 336 003e 1F2C     		cmp	r4, #31
+ 337 0040 EFD9     		bls	.L21
+ 338 0042 0DE0     		b	.L22
+ 339              	.L23:
+ 183:eig.c         ****       }
+ 340              		.loc 1 183 0 is_stmt 1 discriminator 3
+ 341 0044 2946     		mov	r1, r5
+ 342 0046 06EBC410 		add	r0, r6, r4, lsl #7
+ 343 004a FFF7FEFF 		bl	dot
+ 344              	.LVL52:
+ 345 004e 20AB     		add	r3, sp, #128
+ 346 0050 03EB8403 		add	r3, r3, r4, lsl #2
+ 347 0054 43F8800C 		str	r0, [r3, #-128]	@ float
+ 181:eig.c         ****       {
+ 348              		.loc 1 181 0 discriminator 3
+ 349 0058 0134     		adds	r4, r4, #1
+ 350              	.LVL53:
+ 351 005a E4B2     		uxtb	r4, r4
+ 352              	.LVL54:
+ 353              	.L20:
+ 181:eig.c         ****       {
+ 354              		.loc 1 181 0 is_stmt 0 discriminator 1
+ 355 005c 1F2C     		cmp	r4, #31
+ 356 005e F1D9     		bls	.L23
+ 357              	.L22:
+ 187:eig.c         ****         
+ 358              		.loc 1 187 0 is_stmt 1
+ 359 0060 6946     		mov	r1, sp
+ 360 0062 6846     		mov	r0, sp
+ 361 0064 FFF7FEFF 		bl	dot
+ 362              	.LVL55:
+ 363 0068 0446     		mov	r4, r0
+ 364              	.LVL56:
+ 365 006a 2046     		mov	r0, r4
+ 366 006c FFF7FEFF 		bl	__aeabi_f2d
+ 367              	.LVL57:
+ 368 0070 FFF7FEFF 		bl	sqrt
+ 369              	.LVL58:
+ 370 0074 FFF7FEFF 		bl	__aeabi_d2f
+ 371              	.LVL59:
+ 372 0078 8246     		mov	r10, r0
+ 373              	.LVL60:
+ 189:eig.c         ****     {
+ 374              		.loc 1 189 0
+ 375 007a 0024     		movs	r4, #0
+ 376 007c 0BE0     		b	.L24
+ 377              	.LVL61:
+ 378              	.L25:
+ 191:eig.c         ****     }
+ 379              		.loc 1 191 0 discriminator 3
+ 380 007e 20AB     		add	r3, sp, #128
+ 381 0080 03EB8403 		add	r3, r3, r4, lsl #2
+ 382 0084 5146     		mov	r1, r10
+ 383 0086 53F8800C 		ldr	r0, [r3, #-128]	@ float
+ 384 008a FFF7FEFF 		bl	__aeabi_fdiv
+ 385              	.LVL62:
+ 386 008e 45F82400 		str	r0, [r5, r4, lsl #2]	@ float
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 15
+
+
+ 189:eig.c         ****     {
+ 387              		.loc 1 189 0 discriminator 3
+ 388 0092 0134     		adds	r4, r4, #1
+ 389              	.LVL63:
+ 390 0094 E4B2     		uxtb	r4, r4
+ 391              	.LVL64:
+ 392              	.L24:
+ 189:eig.c         ****     {
+ 393              		.loc 1 189 0 is_stmt 0 discriminator 1
+ 394 0096 1F2C     		cmp	r4, #31
+ 395 0098 F1D9     		bls	.L25
+ 168:eig.c         ****   {
+ 396              		.loc 1 168 0 is_stmt 1 discriminator 2
+ 397 009a 0137     		adds	r7, r7, #1
+ 398              	.LVL65:
+ 399 009c FFB2     		uxtb	r7, r7
+ 400              	.LVL66:
+ 401              	.L18:
+ 168:eig.c         ****   {
+ 402              		.loc 1 168 0 is_stmt 0 discriminator 1
+ 403 009e 4745     		cmp	r7, r8
+ 404 00a0 BCD3     		bcc	.L26
+ 195:eig.c         **** 
+ 405              		.loc 1 195 0 is_stmt 1
+ 406 00a2 20B0     		add	sp, sp, #128
+ 407              		.cfi_def_cfa_offset 32
+ 408              		@ sp needed
+ 409 00a4 BDE8F087 		pop	{r4, r5, r6, r7, r8, r9, r10, pc}
+ 410              		.cfi_endproc
+ 411              	.LFE2:
+ 412              		.size	power_iteration, .-power_iteration
+ 413              		.section	.text.invert_matrix,"ax",%progbits
+ 414              		.align	2
+ 415              		.global	invert_matrix
+ 416              		.thumb
+ 417              		.thumb_func
+ 418              		.type	invert_matrix, %function
+ 419              	invert_matrix:
+ 420              	.LFB7:
+ 386:eig.c         **** 
+ 387:eig.c         **** /**************************************************************************//**
+ 388:eig.c         ****  * invert_matrix
+ 389:eig.c         ****  *
+ 390:eig.c         ****  * @brief Modified version of Invert_Sigma from "FODMath.c", computes inverse
+ 391:eig.c         ****  * of matrix.
+ 392:eig.c         ****  *
+ 393:eig.c         ****  * @param[out] SigmaInverse 2D array that contains the result of the matrix
+ 394:eig.c         ****  * inversion.
+ 395:eig.c         ****  *
+ 396:eig.c         ****  * @param[in] Sigma 2D array of dimension MAT_SIZE x MAT_SIZE to be inverted.
+ 397:eig.c         ****  *
+ 398:eig.c         ****  * @return Nothing.
+ 399:eig.c         ****  *
+ 400:eig.c         ****  *****************************************************************************/
+ 401:eig.c         **** 
+ 402:eig.c         **** void invert_matrix(float Sigma[MAT_SIZE][MAT_SIZE], float SigmaInverse[MAT_SIZE][MAT_SIZE])
+ 403:eig.c         **** {
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 16
+
+
+ 421              		.loc 1 403 0
+ 422              		.cfi_startproc
+ 423              		@ args = 0, pretend = 0, frame = 16
+ 424              		@ frame_needed = 0, uses_anonymous_args = 0
+ 425              	.LVL67:
+ 426 0000 2DE9F04F 		push	{r4, r5, r6, r7, r8, r9, r10, fp, lr}
+ 427              		.cfi_def_cfa_offset 36
+ 428              		.cfi_offset 4, -36
+ 429              		.cfi_offset 5, -32
+ 430              		.cfi_offset 6, -28
+ 431              		.cfi_offset 7, -24
+ 432              		.cfi_offset 8, -20
+ 433              		.cfi_offset 9, -16
+ 434              		.cfi_offset 10, -12
+ 435              		.cfi_offset 11, -8
+ 436              		.cfi_offset 14, -4
+ 437 0004 85B0     		sub	sp, sp, #20
+ 438              		.cfi_def_cfa_offset 56
+ 439 0006 0290     		str	r0, [sp, #8]
+ 440 0008 0E46     		mov	r6, r1
+ 441              	.LVL68:
+ 404:eig.c         ****     uint16 i,j,k;     
+ 405:eig.c         **** 	float temp;
+ 406:eig.c         **** 	
+ 407:eig.c         ****     // make Sigma Inverse the Identity matrix
+ 408:eig.c         **** 	for (i = 0;i<MAT_SIZE;i++)
+ 442              		.loc 1 408 0
+ 443 000a 0021     		movs	r1, #0
+ 444              	.LVL69:
+ 445 000c 15E0     		b	.L30
+ 446              	.LVL70:
+ 447              	.L33:
+ 409:eig.c         ****     {
+ 410:eig.c         ****         for (j=0;j<MAT_SIZE;j++)
+ 411:eig.c         ****         {
+ 412:eig.c         ****             if(i==j)
+ 448              		.loc 1 412 0
+ 449 000e 9942     		cmp	r1, r3
+ 450 0010 06D1     		bne	.L31
+ 413:eig.c         ****                 SigmaInverse[i][j] = 1;
+ 451              		.loc 1 413 0
+ 452 0012 06EBC112 		add	r2, r6, r1, lsl #7
+ 453 0016 4FF07E50 		mov	r0, #1065353216
+ 454 001a 42F82300 		str	r0, [r2, r3, lsl #2]	@ float
+ 455 001e 04E0     		b	.L32
+ 456              	.L31:
+ 414:eig.c         ****             else
+ 415:eig.c         ****                 SigmaInverse[i][j] = 0;
+ 457              		.loc 1 415 0
+ 458 0020 06EBC112 		add	r2, r6, r1, lsl #7
+ 459 0024 0020     		movs	r0, #0
+ 460 0026 42F82300 		str	r0, [r2, r3, lsl #2]	@ float
+ 461              	.L32:
+ 410:eig.c         ****         {
+ 462              		.loc 1 410 0 discriminator 2
+ 463 002a 0133     		adds	r3, r3, #1
+ 464              	.LVL71:
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 17
+
+
+ 465 002c 9BB2     		uxth	r3, r3
+ 466              	.LVL72:
+ 467 002e 00E0     		b	.L34
+ 468              	.LVL73:
+ 469              	.L44:
+ 470 0030 0023     		movs	r3, #0
+ 471              	.L34:
+ 472              	.LVL74:
+ 410:eig.c         ****         {
+ 473              		.loc 1 410 0 is_stmt 0 discriminator 1
+ 474 0032 1F2B     		cmp	r3, #31
+ 475 0034 EBD9     		bls	.L33
+ 408:eig.c         ****     {
+ 476              		.loc 1 408 0 is_stmt 1 discriminator 2
+ 477 0036 0131     		adds	r1, r1, #1
+ 478              	.LVL75:
+ 479 0038 89B2     		uxth	r1, r1
+ 480              	.LVL76:
+ 481              	.L30:
+ 408:eig.c         ****     {
+ 482              		.loc 1 408 0 is_stmt 0 discriminator 1
+ 483 003a 1F29     		cmp	r1, #31
+ 484 003c F8D9     		bls	.L44
+ 485 003e 0023     		movs	r3, #0
+ 486 0040 0193     		str	r3, [sp, #4]
+ 487 0042 5BE0     		b	.L35
+ 488              	.LVL77:
+ 489              	.L43:
+ 416:eig.c         ****         }
+ 417:eig.c         ****     }
+ 418:eig.c         **** 		
+ 419:eig.c         **** 	 for (i=0; i<MAT_SIZE; i++)
+ 420:eig.c         ****      {
+ 421:eig.c         ****         //Divide row by diagonal element of Sigma
+ 422:eig.c         ****         temp = Sigma[i][i];
+ 490              		.loc 1 422 0 is_stmt 1
+ 491 0044 019A     		ldr	r2, [sp, #4]
+ 492 0046 4FEAC21B 		lsl	fp, r2, #7
+ 493 004a 029B     		ldr	r3, [sp, #8]
+ 494 004c 03EB0B09 		add	r9, r3, fp
+ 495 0050 0392     		str	r2, [sp, #12]
+ 496 0052 59F82270 		ldr	r7, [r9, r2, lsl #2]	@ float
+ 497              	.LVL78:
+ 423:eig.c         ****         for (j=0; j<MAT_SIZE; j++)
+ 498              		.loc 1 423 0
+ 499 0056 0024     		movs	r4, #0
+ 500 0058 11E0     		b	.L36
+ 501              	.LVL79:
+ 502              	.L37:
+ 424:eig.c         ****         {
+ 425:eig.c         ****             SigmaInverse[i][j] /= temp; //  has a lot of 0s, 1st time
+ 503              		.loc 1 425 0 discriminator 3
+ 504 005a 06EB0B05 		add	r5, r6, fp
+ 505 005e 3946     		mov	r1, r7
+ 506 0060 55F82400 		ldr	r0, [r5, r4, lsl #2]	@ float
+ 507 0064 FFF7FEFF 		bl	__aeabi_fdiv
+ 508              	.LVL80:
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 18
+
+
+ 509 0068 45F82400 		str	r0, [r5, r4, lsl #2]	@ float
+ 426:eig.c         ****             Sigma[i][j] /= temp;
+ 510              		.loc 1 426 0 discriminator 3
+ 511 006c 3946     		mov	r1, r7
+ 512 006e 59F82400 		ldr	r0, [r9, r4, lsl #2]	@ float
+ 513 0072 FFF7FEFF 		bl	__aeabi_fdiv
+ 514              	.LVL81:
+ 515 0076 49F82400 		str	r0, [r9, r4, lsl #2]	@ float
+ 423:eig.c         ****         for (j=0; j<MAT_SIZE; j++)
+ 516              		.loc 1 423 0 discriminator 3
+ 517 007a 0134     		adds	r4, r4, #1
+ 518              	.LVL82:
+ 519 007c A4B2     		uxth	r4, r4
+ 520              	.LVL83:
+ 521              	.L36:
+ 423:eig.c         ****         for (j=0; j<MAT_SIZE; j++)
+ 522              		.loc 1 423 0 is_stmt 0 discriminator 1
+ 523 007e 1F2C     		cmp	r4, #31
+ 524 0080 EBD9     		bls	.L37
+ 525 0082 0023     		movs	r3, #0
+ 526 0084 0093     		str	r3, [sp]
+ 527 0086 32E0     		b	.L38
+ 528              	.LVL84:
+ 529              	.L42:
+ 427:eig.c         ****         }
+ 428:eig.c         **** 
+ 429:eig.c         **** 		//Eliminate non-diagonal elements in
+ 430:eig.c         ****         for (k=0;k<MAT_SIZE;k++)
+ 431:eig.c         ****         {
+ 432:eig.c         ****             if(k!=i)
+ 530              		.loc 1 432 0 is_stmt 1
+ 531 0088 019B     		ldr	r3, [sp, #4]
+ 532 008a 1946     		mov	r1, r3
+ 533 008c 009A     		ldr	r2, [sp]
+ 534 008e 9142     		cmp	r1, r2
+ 535 0090 29D0     		beq	.L39
+ 433:eig.c         ****             {
+ 434:eig.c         ****             	temp = Sigma[k][i];
+ 536              		.loc 1 434 0
+ 537 0092 4FEAC21A 		lsl	r10, r2, #7
+ 538 0096 029B     		ldr	r3, [sp, #8]
+ 539 0098 03EB0A07 		add	r7, r3, r10
+ 540 009c 039B     		ldr	r3, [sp, #12]
+ 541 009e 57F82380 		ldr	r8, [r7, r3, lsl #2]	@ float
+ 542              	.LVL85:
+ 435:eig.c         ****             	for (j=0;j<MAT_SIZE;j++)
+ 543              		.loc 1 435 0
+ 544 00a2 0024     		movs	r4, #0
+ 545 00a4 1DE0     		b	.L40
+ 546              	.LVL86:
+ 547              	.L41:
+ 436:eig.c         ****             	{
+ 437:eig.c         **** 
+ 438:eig.c         ****                     SigmaInverse[k][j]-= temp*SigmaInverse[i][j];
+ 548              		.loc 1 438 0 discriminator 3
+ 549 00a6 06EB0A05 		add	r5, r6, r10
+ 550 00aa 06EB0B03 		add	r3, r6, fp
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 19
+
+
+ 551 00ae 53F82410 		ldr	r1, [r3, r4, lsl #2]	@ float
+ 552 00b2 4046     		mov	r0, r8
+ 553 00b4 FFF7FEFF 		bl	__aeabi_fmul
+ 554              	.LVL87:
+ 555 00b8 0146     		mov	r1, r0
+ 556 00ba 55F82400 		ldr	r0, [r5, r4, lsl #2]	@ float
+ 557 00be FFF7FEFF 		bl	__aeabi_fsub
+ 558              	.LVL88:
+ 559 00c2 45F82400 		str	r0, [r5, r4, lsl #2]	@ float
+ 439:eig.c         ****                     Sigma[k][j]-= temp*Sigma[i][j];
+ 560              		.loc 1 439 0 discriminator 3
+ 561 00c6 59F82410 		ldr	r1, [r9, r4, lsl #2]	@ float
+ 562 00ca 4046     		mov	r0, r8
+ 563 00cc FFF7FEFF 		bl	__aeabi_fmul
+ 564              	.LVL89:
+ 565 00d0 0146     		mov	r1, r0
+ 566 00d2 57F82400 		ldr	r0, [r7, r4, lsl #2]	@ float
+ 567 00d6 FFF7FEFF 		bl	__aeabi_fsub
+ 568              	.LVL90:
+ 569 00da 47F82400 		str	r0, [r7, r4, lsl #2]	@ float
+ 435:eig.c         ****             	for (j=0;j<MAT_SIZE;j++)
+ 570              		.loc 1 435 0 discriminator 3
+ 571 00de 0134     		adds	r4, r4, #1
+ 572              	.LVL91:
+ 573 00e0 A4B2     		uxth	r4, r4
+ 574              	.LVL92:
+ 575              	.L40:
+ 435:eig.c         ****             	for (j=0;j<MAT_SIZE;j++)
+ 576              		.loc 1 435 0 is_stmt 0 discriminator 1
+ 577 00e2 1F2C     		cmp	r4, #31
+ 578 00e4 DFD9     		bls	.L41
+ 579              	.LVL93:
+ 580              	.L39:
+ 430:eig.c         ****         {
+ 581              		.loc 1 430 0 is_stmt 1 discriminator 2
+ 582 00e6 009B     		ldr	r3, [sp]
+ 583 00e8 0133     		adds	r3, r3, #1
+ 584 00ea 9BB2     		uxth	r3, r3
+ 585 00ec 0093     		str	r3, [sp]
+ 586              	.LVL94:
+ 587              	.L38:
+ 430:eig.c         ****         {
+ 588              		.loc 1 430 0 is_stmt 0 discriminator 1
+ 589 00ee 009B     		ldr	r3, [sp]
+ 590 00f0 1F2B     		cmp	r3, #31
+ 591 00f2 C9D9     		bls	.L42
+ 419:eig.c         ****      {
+ 592              		.loc 1 419 0 is_stmt 1 discriminator 2
+ 593 00f4 019B     		ldr	r3, [sp, #4]
+ 594 00f6 0133     		adds	r3, r3, #1
+ 595 00f8 9BB2     		uxth	r3, r3
+ 596 00fa 0193     		str	r3, [sp, #4]
+ 597              	.LVL95:
+ 598              	.L35:
+ 419:eig.c         ****      {
+ 599              		.loc 1 419 0 is_stmt 0 discriminator 1
+ 600 00fc 019B     		ldr	r3, [sp, #4]
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 20
+
+
+ 601 00fe 1F2B     		cmp	r3, #31
+ 602 0100 A0D9     		bls	.L43
+ 440:eig.c         ****             	}
+ 441:eig.c         ****         	}
+ 442:eig.c         ****     	}
+ 443:eig.c         ****         
+ 444:eig.c         **** 	}
+ 445:eig.c         **** 	// Make the inverse covariance matrix symmetric // ****may be able to take this out ...
+ 446:eig.c         **** 	/*for (i = 0;i<MAT_SIZE;i++)
+ 447:eig.c         ****     {
+ 448:eig.c         ****         for (j=0;j<MAT_SIZE;j++)
+ 449:eig.c         ****         {
+ 450:eig.c         ****             SigmaInverse[i][j] = (SigmaInverse[i][j] + SigmaInverse[j][i])/2;
+ 451:eig.c         **** 			SigmaInverse[j][i] = SigmaInverse[i][j];
+ 452:eig.c         ****         }
+ 453:eig.c         ****     }*/
+ 454:eig.c         **** }
+ 603              		.loc 1 454 0 is_stmt 1
+ 604 0102 05B0     		add	sp, sp, #20
+ 605              		.cfi_def_cfa_offset 36
+ 606              		@ sp needed
+ 607 0104 BDE8F08F 		pop	{r4, r5, r6, r7, r8, r9, r10, fp, pc}
+ 608              		.cfi_endproc
+ 609              	.LFE7:
+ 610              		.size	invert_matrix, .-invert_matrix
+ 611              		.section	.text.rayleigh_quotient_iteration,"ax",%progbits
+ 612              		.align	2
+ 613              		.thumb
+ 614              		.thumb_func
+ 615              		.type	rayleigh_quotient_iteration, %function
+ 616              	rayleigh_quotient_iteration:
+ 617              	.LFB5:
+ 286:eig.c         ****   uint8 i = 0, j = 0, k = 0;
+ 618              		.loc 1 286 0
+ 619              		.cfi_startproc
+ 620              		@ args = 0, pretend = 0, frame = 128
+ 621              		@ frame_needed = 0, uses_anonymous_args = 0
+ 622              	.LVL96:
+ 623 0000 2DE9F04F 		push	{r4, r5, r6, r7, r8, r9, r10, fp, lr}
+ 624              		.cfi_def_cfa_offset 36
+ 625              		.cfi_offset 4, -36
+ 626              		.cfi_offset 5, -32
+ 627              		.cfi_offset 6, -28
+ 628              		.cfi_offset 7, -24
+ 629              		.cfi_offset 8, -20
+ 630              		.cfi_offset 9, -16
+ 631              		.cfi_offset 10, -12
+ 632              		.cfi_offset 11, -8
+ 633              		.cfi_offset 14, -4
+ 634 0004 A1B0     		sub	sp, sp, #132
+ 635              		.cfi_def_cfa_offset 168
+ 636 0006 0746     		mov	r7, r0
+ 637 0008 0E46     		mov	r6, r1
+ 638 000a 9246     		mov	r10, r2
+ 639 000c 9B46     		mov	fp, r3
+ 640              	.LVL97:
+ 289:eig.c         ****      
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 21
+
+
+ 641              		.loc 1 289 0
+ 642 000e 8022     		movs	r2, #128
+ 643              	.LVL98:
+ 644 0010 0021     		movs	r1, #0
+ 645              	.LVL99:
+ 646 0012 6846     		mov	r0, sp
+ 647              	.LVL100:
+ 648 0014 FFF7FEFF 		bl	memset
+ 649              	.LVL101:
+ 292:eig.c         ****     
+ 650              		.loc 1 292 0
+ 651 0018 5146     		mov	r1, r10
+ 652 001a 3046     		mov	r0, r6
+ 653 001c FFF7FEFF 		bl	compute_rayleigh_quotient
+ 654              	.LVL102:
+ 655 0020 8146     		mov	r9, r0
+ 656              	.LVL103:
+ 294:eig.c         ****   {
+ 657              		.loc 1 294 0
+ 658 0022 4FF00008 		mov	r8, #0
+ 659 0026 73E0     		b	.L47
+ 660              	.LVL104:
+ 661              	.L50:
+ 301:eig.c         ****         {
+ 662              		.loc 1 301 0
+ 663 0028 A542     		cmp	r5, r4
+ 664 002a 0CD1     		bne	.L48
+ 303:eig.c         ****         }
+ 665              		.loc 1 303 0
+ 666 002c 06EBC513 		add	r3, r6, r5, lsl #7
+ 667 0030 4946     		mov	r1, r9
+ 668 0032 53F82500 		ldr	r0, [r3, r5, lsl #2]	@ float
+ 669 0036 FFF7FEFF 		bl	__aeabi_fsub
+ 670              	.LVL105:
+ 671 003a 05EB4512 		add	r2, r5, r5, lsl #5
+ 672 003e 9300     		lsls	r3, r2, #2
+ 673 0040 364A     		ldr	r2, .L64
+ 674 0042 D050     		str	r0, [r2, r3]	@ float
+ 675 0044 08E0     		b	.L49
+ 676              	.L48:
+ 307:eig.c         ****         }
+ 677              		.loc 1 307 0
+ 678 0046 06EBC513 		add	r3, r6, r5, lsl #7
+ 679 004a 53F82410 		ldr	r1, [r3, r4, lsl #2]	@ float
+ 680 004e 04EB4513 		add	r3, r4, r5, lsl #5
+ 681 0052 324A     		ldr	r2, .L64
+ 682 0054 42F82310 		str	r1, [r2, r3, lsl #2]	@ float
+ 683              	.L49:
+ 299:eig.c         ****       {
+ 684              		.loc 1 299 0 discriminator 2
+ 685 0058 0134     		adds	r4, r4, #1
+ 686              	.LVL106:
+ 687 005a E4B2     		uxtb	r4, r4
+ 688              	.LVL107:
+ 689 005c 00E0     		b	.L51
+ 690              	.LVL108:
+ 691              	.L60:
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 22
+
+
+ 692 005e 0024     		movs	r4, #0
+ 693              	.L51:
+ 694              	.LVL109:
+ 299:eig.c         ****       {
+ 695              		.loc 1 299 0 is_stmt 0 discriminator 1
+ 696 0060 1F2C     		cmp	r4, #31
+ 697 0062 E1D9     		bls	.L50
+ 297:eig.c         ****     {  
+ 698              		.loc 1 297 0 is_stmt 1 discriminator 2
+ 699 0064 0135     		adds	r5, r5, #1
+ 700              	.LVL110:
+ 701 0066 EDB2     		uxtb	r5, r5
+ 702              	.LVL111:
+ 703 0068 00E0     		b	.L59
+ 704              	.LVL112:
+ 705              	.L62:
+ 706 006a 0025     		movs	r5, #0
+ 707              	.LVL113:
+ 708              	.L59:
+ 297:eig.c         ****     {  
+ 709              		.loc 1 297 0 is_stmt 0 discriminator 1
+ 710 006c 1F2D     		cmp	r5, #31
+ 711 006e F6D9     		bls	.L60
+ 316:eig.c         ****     
+ 712              		.loc 1 316 0 is_stmt 1
+ 713 0070 2B49     		ldr	r1, .L64+4
+ 714 0072 2A48     		ldr	r0, .L64
+ 715 0074 FFF7FEFF 		bl	invert_matrix
+ 716              	.LVL114:
+ 320:eig.c         ****     {
+ 717              		.loc 1 320 0
+ 718 0078 B8F1000F 		cmp	r8, #0
+ 719 007c 0FD0     		beq	.L61
+ 720 007e 0024     		movs	r4, #0
+ 721 0080 1EE0     		b	.L53
+ 722              	.LVL115:
+ 723              	.L54:
+ 324:eig.c         ****       }
+ 724              		.loc 1 324 0 discriminator 3
+ 725 0082 5146     		mov	r1, r10
+ 726 0084 2648     		ldr	r0, .L64+4
+ 727 0086 00EBC410 		add	r0, r0, r4, lsl #7
+ 728 008a FFF7FEFF 		bl	dot
+ 729              	.LVL116:
+ 730 008e 20AB     		add	r3, sp, #128
+ 731 0090 03EB8403 		add	r3, r3, r4, lsl #2
+ 732 0094 43F8800C 		str	r0, [r3, #-128]	@ float
+ 322:eig.c         ****       {
+ 733              		.loc 1 322 0 discriminator 3
+ 734 0098 0134     		adds	r4, r4, #1
+ 735              	.LVL117:
+ 736 009a E4B2     		uxtb	r4, r4
+ 737              	.LVL118:
+ 738 009c 00E0     		b	.L52
+ 739              	.LVL119:
+ 740              	.L61:
+ 741 009e 0024     		movs	r4, #0
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 23
+
+
+ 742              	.LVL120:
+ 743              	.L52:
+ 322:eig.c         ****       {
+ 744              		.loc 1 322 0 is_stmt 0 discriminator 1
+ 745 00a0 1F2C     		cmp	r4, #31
+ 746 00a2 EED9     		bls	.L54
+ 747 00a4 0EE0     		b	.L55
+ 748              	.L56:
+ 331:eig.c         ****       }
+ 749              		.loc 1 331 0 is_stmt 1 discriminator 3
+ 750 00a6 3946     		mov	r1, r7
+ 751 00a8 1D48     		ldr	r0, .L64+4
+ 752 00aa 00EBC410 		add	r0, r0, r4, lsl #7
+ 753 00ae FFF7FEFF 		bl	dot
+ 754              	.LVL121:
+ 755 00b2 20AB     		add	r3, sp, #128
+ 756 00b4 03EB8403 		add	r3, r3, r4, lsl #2
+ 757 00b8 43F8800C 		str	r0, [r3, #-128]	@ float
+ 329:eig.c         ****       {
+ 758              		.loc 1 329 0 discriminator 3
+ 759 00bc 0134     		adds	r4, r4, #1
+ 760              	.LVL122:
+ 761 00be E4B2     		uxtb	r4, r4
+ 762              	.LVL123:
+ 763              	.L53:
+ 329:eig.c         ****       {
+ 764              		.loc 1 329 0 is_stmt 0 discriminator 1
+ 765 00c0 1F2C     		cmp	r4, #31
+ 766 00c2 F0D9     		bls	.L56
+ 767              	.L55:
+ 336:eig.c         ****         
+ 768              		.loc 1 336 0 is_stmt 1
+ 769 00c4 6946     		mov	r1, sp
+ 770 00c6 6846     		mov	r0, sp
+ 771 00c8 FFF7FEFF 		bl	dot
+ 772              	.LVL124:
+ 773 00cc 0446     		mov	r4, r0
+ 774              	.LVL125:
+ 775 00ce 2046     		mov	r0, r4
+ 776 00d0 FFF7FEFF 		bl	__aeabi_f2d
+ 777              	.LVL126:
+ 778 00d4 FFF7FEFF 		bl	sqrt
+ 779              	.LVL127:
+ 780 00d8 FFF7FEFF 		bl	__aeabi_d2f
+ 781              	.LVL128:
+ 782 00dc 0546     		mov	r5, r0
+ 783              	.LVL129:
+ 339:eig.c         ****     {
+ 784              		.loc 1 339 0
+ 785 00de 0024     		movs	r4, #0
+ 786 00e0 0BE0     		b	.L57
+ 787              	.LVL130:
+ 788              	.L58:
+ 341:eig.c         ****     }
+ 789              		.loc 1 341 0 discriminator 3
+ 790 00e2 20AB     		add	r3, sp, #128
+ 791 00e4 03EB8403 		add	r3, r3, r4, lsl #2
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 24
+
+
+ 792 00e8 2946     		mov	r1, r5
+ 793 00ea 53F8800C 		ldr	r0, [r3, #-128]	@ float
+ 794 00ee FFF7FEFF 		bl	__aeabi_fdiv
+ 795              	.LVL131:
+ 796 00f2 47F82400 		str	r0, [r7, r4, lsl #2]	@ float
+ 339:eig.c         ****     {
+ 797              		.loc 1 339 0 discriminator 3
+ 798 00f6 0134     		adds	r4, r4, #1
+ 799              	.LVL132:
+ 800 00f8 E4B2     		uxtb	r4, r4
+ 801              	.LVL133:
+ 802              	.L57:
+ 339:eig.c         ****     {
+ 803              		.loc 1 339 0 is_stmt 0 discriminator 1
+ 804 00fa 1F2C     		cmp	r4, #31
+ 805 00fc F1D9     		bls	.L58
+ 345:eig.c         ****     
+ 806              		.loc 1 345 0 is_stmt 1 discriminator 2
+ 807 00fe 3946     		mov	r1, r7
+ 808 0100 3046     		mov	r0, r6
+ 809 0102 FFF7FEFF 		bl	compute_rayleigh_quotient
+ 810              	.LVL134:
+ 811 0106 8146     		mov	r9, r0
+ 812              	.LVL135:
+ 294:eig.c         ****   {
+ 813              		.loc 1 294 0 discriminator 2
+ 814 0108 08F10108 		add	r8, r8, #1
+ 815              	.LVL136:
+ 816 010c 5FFA88F8 		uxtb	r8, r8
+ 817              	.LVL137:
+ 818              	.L47:
+ 294:eig.c         ****   {
+ 819              		.loc 1 294 0 is_stmt 0 discriminator 1
+ 820 0110 D845     		cmp	r8, fp
+ 821 0112 AAD3     		bcc	.L62
+ 350:eig.c         **** 
+ 822              		.loc 1 350 0 is_stmt 1
+ 823 0114 4846     		mov	r0, r9
+ 824 0116 21B0     		add	sp, sp, #132
+ 825              		.cfi_def_cfa_offset 36
+ 826              		@ sp needed
+ 827 0118 BDE8F08F 		pop	{r4, r5, r6, r7, r8, r9, r10, fp, pc}
+ 828              	.LVL138:
+ 829              	.L65:
+ 830              		.align	2
+ 831              	.L64:
+ 832 011c 00000000 		.word	W2
+ 833 0120 00000000 		.word	W3
+ 834              		.cfi_endproc
+ 835              	.LFE5:
+ 836              		.size	rayleigh_quotient_iteration, .-rayleigh_quotient_iteration
+ 837              		.section	.text.eig_decomp,"ax",%progbits
+ 838              		.align	2
+ 839              		.global	eig_decomp
+ 840              		.thumb
+ 841              		.thumb_func
+ 842              		.type	eig_decomp, %function
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 25
+
+
+ 843              	eig_decomp:
+ 844              	.LFB1:
+  79:eig.c         ****   uint8 i = 0;
+ 845              		.loc 1 79 0
+ 846              		.cfi_startproc
+ 847              		@ args = 8, pretend = 0, frame = 0
+ 848              		@ frame_needed = 0, uses_anonymous_args = 0
+ 849              	.LVL139:
+ 850 0000 2DE9F84F 		push	{r3, r4, r5, r6, r7, r8, r9, r10, fp, lr}
+ 851              		.cfi_def_cfa_offset 40
+ 852              		.cfi_offset 3, -40
+ 853              		.cfi_offset 4, -36
+ 854              		.cfi_offset 5, -32
+ 855              		.cfi_offset 6, -28
+ 856              		.cfi_offset 7, -24
+ 857              		.cfi_offset 8, -20
+ 858              		.cfi_offset 9, -16
+ 859              		.cfi_offset 10, -12
+ 860              		.cfi_offset 11, -8
+ 861              		.cfi_offset 14, -4
+ 862 0004 8046     		mov	r8, r0
+ 863 0006 0D46     		mov	r5, r1
+ 864 0008 9246     		mov	r10, r2
+ 865 000a 9946     		mov	r9, r3
+ 866 000c 9DF82860 		ldrb	r6, [sp, #40]	@ zero_extendqisi2
+ 867 0010 9DF82C70 		ldrb	r7, [sp, #44]	@ zero_extendqisi2
+ 868              	.LVL140:
+  84:eig.c         ****   {
+ 869              		.loc 1 84 0
+ 870 0014 B6B1     		cbz	r6, .L67
+  87:eig.c         ****     if (0 == r_iter)
+ 871              		.loc 1 87 0
+ 872 0016 3346     		mov	r3, r6
+ 873              	.LVL141:
+ 874 0018 4A46     		mov	r2, r9
+ 875              	.LVL142:
+ 876 001a 5146     		mov	r1, r10
+ 877              	.LVL143:
+ 878 001c 2846     		mov	r0, r5
+ 879              	.LVL144:
+ 880 001e FFF7FEFF 		bl	power_iteration
+ 881              	.LVL145:
+  88:eig.c         ****     {
+ 882              		.loc 1 88 0
+ 883 0022 37B9     		cbnz	r7, .L68
+  90:eig.c         ****     }
+ 884              		.loc 1 90 0
+ 885 0024 2946     		mov	r1, r5
+ 886 0026 5046     		mov	r0, r10
+ 887 0028 FFF7FEFF 		bl	compute_rayleigh_quotient
+ 888              	.LVL146:
+ 889 002c C8F80000 		str	r0, [r8]	@ float
+ 890 0030 11E0     		b	.L69
+ 891              	.L68:
+  94:eig.c         ****     }
+ 892              		.loc 1 94 0
+ 893 0032 3B46     		mov	r3, r7
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 26
+
+
+ 894 0034 2A46     		mov	r2, r5
+ 895 0036 5146     		mov	r1, r10
+ 896 0038 2846     		mov	r0, r5
+ 897 003a FFF7FEFF 		bl	rayleigh_quotient_iteration
+ 898              	.LVL147:
+ 899 003e C8F80000 		str	r0, [r8]	@ float
+ 900 0042 08E0     		b	.L69
+ 901              	.LVL148:
+ 902              	.L67:
+  97:eig.c         ****   {
+ 903              		.loc 1 97 0
+ 904 0044 3FB1     		cbz	r7, .L69
+  99:eig.c         ****   } /* else, p_it == 0 and r_it == 0 and Phi won't be updated */
+ 905              		.loc 1 99 0
+ 906 0046 3B46     		mov	r3, r7
+ 907              	.LVL149:
+ 908 0048 4A46     		mov	r2, r9
+ 909              	.LVL150:
+ 910 004a 5146     		mov	r1, r10
+ 911              	.LVL151:
+ 912 004c 2846     		mov	r0, r5
+ 913              	.LVL152:
+ 914 004e FFF7FEFF 		bl	rayleigh_quotient_iteration
+ 915              	.LVL153:
+ 916 0052 C8F80000 		str	r0, [r8]	@ float
+ 917              	.L69:
+  79:eig.c         ****   uint8 i = 0;
+ 918              		.loc 1 79 0 discriminator 1
+ 919 0056 0124     		movs	r4, #1
+ 920 0058 3FE0     		b	.L70
+ 921              	.LVL154:
+ 922              	.L76:
+ 105:eig.c         ****     {
+ 923              		.loc 1 105 0
+ 924 005a 012C     		cmp	r4, #1
+ 925 005c 07D1     		bne	.L71
+ 108:eig.c         ****     } 
+ 926              		.loc 1 108 0
+ 927 005e D8F80030 		ldr	r3, [r8]	@ float
+ 928 0062 2A46     		mov	r2, r5
+ 929 0064 5146     		mov	r1, r10
+ 930 0066 1F48     		ldr	r0, .L78
+ 931 0068 FFF7FEFF 		bl	deflation
+ 932              	.LVL155:
+ 933 006c 0DE0     		b	.L72
+ 934              	.L71:
+ 113:eig.c         ****     }
+ 935              		.loc 1 113 0
+ 936 006e 04F10072 		add	r2, r4, #33554432
+ 937 0072 013A     		subs	r2, r2, #1
+ 938 0074 04F18043 		add	r3, r4, #1073741824
+ 939 0078 013B     		subs	r3, r3, #1
+ 940 007a 1A48     		ldr	r0, .L78
+ 941 007c 58F82330 		ldr	r3, [r8, r3, lsl #2]	@ float
+ 942 0080 05EBC212 		add	r2, r5, r2, lsl #7
+ 943 0084 0146     		mov	r1, r0
+ 944 0086 FFF7FEFF 		bl	deflation
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 27
+
+
+ 945              	.LVL156:
+ 946              	.L72:
+ 116:eig.c         ****     {
+ 947              		.loc 1 116 0
+ 948 008a CEB1     		cbz	r6, .L73
+ 119:eig.c         ****       if (0 == r_iter) 
+ 949              		.loc 1 119 0
+ 950 008c E201     		lsls	r2, r4, #7
+ 951 008e 05EB020B 		add	fp, r5, r2
+ 952 0092 3346     		mov	r3, r6
+ 953 0094 4A44     		add	r2, r2, r9
+ 954 0096 1349     		ldr	r1, .L78
+ 955 0098 5846     		mov	r0, fp
+ 956 009a FFF7FEFF 		bl	power_iteration
+ 957              	.LVL157:
+ 120:eig.c         ****       {
+ 958              		.loc 1 120 0
+ 959 009e 37B9     		cbnz	r7, .L74
+ 122:eig.c         ****       } 
+ 960              		.loc 1 122 0
+ 961 00a0 5946     		mov	r1, fp
+ 962 00a2 1048     		ldr	r0, .L78
+ 963 00a4 FFF7FEFF 		bl	compute_rayleigh_quotient
+ 964              	.LVL158:
+ 965 00a8 48F82400 		str	r0, [r8, r4, lsl #2]	@ float
+ 966 00ac 13E0     		b	.L75
+ 967              	.L74:
+ 126:eig.c         ****       }
+ 968              		.loc 1 126 0
+ 969 00ae 3B46     		mov	r3, r7
+ 970 00b0 5A46     		mov	r2, fp
+ 971 00b2 0C49     		ldr	r1, .L78
+ 972 00b4 5846     		mov	r0, fp
+ 973 00b6 FFF7FEFF 		bl	rayleigh_quotient_iteration
+ 974              	.LVL159:
+ 975 00ba 48F82400 		str	r0, [r8, r4, lsl #2]	@ float
+ 976 00be 0AE0     		b	.L75
+ 977              	.L73:
+ 129:eig.c         ****     {
+ 978              		.loc 1 129 0
+ 979 00c0 4FB1     		cbz	r7, .L75
+ 131:eig.c         ****     } /* else, p_it == 0 and r_it == 0 and Phi won't be updated */
+ 980              		.loc 1 131 0
+ 981 00c2 E001     		lsls	r0, r4, #7
+ 982 00c4 3B46     		mov	r3, r7
+ 983 00c6 09EB0002 		add	r2, r9, r0
+ 984 00ca 0649     		ldr	r1, .L78
+ 985 00cc 2844     		add	r0, r0, r5
+ 986 00ce FFF7FEFF 		bl	rayleigh_quotient_iteration
+ 987              	.LVL160:
+ 988 00d2 48F82400 		str	r0, [r8, r4, lsl #2]	@ float
+ 989              	.L75:
+ 102:eig.c         ****   {
+ 990              		.loc 1 102 0 discriminator 2
+ 991 00d6 0134     		adds	r4, r4, #1
+ 992              	.LVL161:
+ 993 00d8 E4B2     		uxtb	r4, r4
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 28
+
+
+ 994              	.LVL162:
+ 995              	.L70:
+ 102:eig.c         ****   {
+ 996              		.loc 1 102 0 is_stmt 0 discriminator 1
+ 997 00da 032C     		cmp	r4, #3
+ 998 00dc BDD9     		bls	.L76
+ 136:eig.c         **** 
+ 999              		.loc 1 136 0 is_stmt 1
+ 1000 00de BDE8F88F 		pop	{r3, r4, r5, r6, r7, r8, r9, r10, fp, pc}
+ 1001              	.LVL163:
+ 1002              	.L79:
+ 1003 00e2 00BF     		.align	2
+ 1004              	.L78:
+ 1005 00e4 00000000 		.word	W1
+ 1006              		.cfi_endproc
+ 1007              	.LFE1:
+ 1008              		.size	eig_decomp, .-eig_decomp
+ 1009              		.text
+ 1010              	.Letext0:
+ 1011              		.file 2 "Generated_Source\\PSoC5/cytypes.h"
+ 1012              		.file 3 "c:\\program files (x86)\\cypress\\psoc creator\\4.4\\psoc creator\\import\\gnu\\arm\\5.4.
+ 1013              		.section	.debug_info,"",%progbits
+ 1014              	.Ldebug_info0:
+ 1015 0000 CE060000 		.4byte	0x6ce
+ 1016 0004 0400     		.2byte	0x4
+ 1017 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 1018 000a 04       		.byte	0x4
+ 1019 000b 01       		.uleb128 0x1
+ 1020 000c 61000000 		.4byte	.LASF35
+ 1021 0010 0C       		.byte	0xc
+ 1022 0011 FD000000 		.4byte	.LASF36
+ 1023 0015 78010000 		.4byte	.LASF37
+ 1024 0019 00000000 		.4byte	.Ldebug_ranges0+0
+ 1025 001d 00000000 		.4byte	0
+ 1026 0021 00000000 		.4byte	.Ldebug_line0
+ 1027 0025 02       		.uleb128 0x2
+ 1028 0026 01       		.byte	0x1
+ 1029 0027 06       		.byte	0x6
+ 1030 0028 47000000 		.4byte	.LASF0
+ 1031 002c 02       		.uleb128 0x2
+ 1032 002d 01       		.byte	0x1
+ 1033 002e 08       		.byte	0x8
+ 1034 002f 53000000 		.4byte	.LASF1
+ 1035 0033 02       		.uleb128 0x2
+ 1036 0034 02       		.byte	0x2
+ 1037 0035 05       		.byte	0x5
+ 1038 0036 58020000 		.4byte	.LASF2
+ 1039 003a 02       		.uleb128 0x2
+ 1040 003b 02       		.byte	0x2
+ 1041 003c 07       		.byte	0x7
+ 1042 003d 1A010000 		.4byte	.LASF3
+ 1043 0041 02       		.uleb128 0x2
+ 1044 0042 04       		.byte	0x4
+ 1045 0043 05       		.byte	0x5
+ 1046 0044 71020000 		.4byte	.LASF4
+ 1047 0048 02       		.uleb128 0x2
+ 1048 0049 04       		.byte	0x4
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 29
+
+
+ 1049 004a 07       		.byte	0x7
+ 1050 004b 03010000 		.4byte	.LASF5
+ 1051 004f 02       		.uleb128 0x2
+ 1052 0050 08       		.byte	0x8
+ 1053 0051 05       		.byte	0x5
+ 1054 0052 3E020000 		.4byte	.LASF6
+ 1055 0056 02       		.uleb128 0x2
+ 1056 0057 08       		.byte	0x8
+ 1057 0058 07       		.byte	0x7
+ 1058 0059 01020000 		.4byte	.LASF7
+ 1059 005d 03       		.uleb128 0x3
+ 1060 005e 04       		.byte	0x4
+ 1061 005f 05       		.byte	0x5
+ 1062 0060 696E7400 		.ascii	"int\000"
+ 1063 0064 02       		.uleb128 0x2
+ 1064 0065 04       		.byte	0x4
+ 1065 0066 07       		.byte	0x7
+ 1066 0067 E5010000 		.4byte	.LASF8
+ 1067 006b 04       		.uleb128 0x4
+ 1068 006c 6B020000 		.4byte	.LASF9
+ 1069 0070 02       		.byte	0x2
+ 1070 0071 9201     		.2byte	0x192
+ 1071 0073 2C000000 		.4byte	0x2c
+ 1072 0077 04       		.uleb128 0x4
+ 1073 0078 71010000 		.4byte	.LASF10
+ 1074 007c 02       		.byte	0x2
+ 1075 007d 9301     		.2byte	0x193
+ 1076 007f 3A000000 		.4byte	0x3a
+ 1077 0083 02       		.uleb128 0x2
+ 1078 0084 04       		.byte	0x4
+ 1079 0085 04       		.byte	0x4
+ 1080 0086 41000000 		.4byte	.LASF11
+ 1081 008a 02       		.uleb128 0x2
+ 1082 008b 08       		.byte	0x8
+ 1083 008c 04       		.byte	0x4
+ 1084 008d 54010000 		.4byte	.LASF12
+ 1085 0091 02       		.uleb128 0x2
+ 1086 0092 01       		.byte	0x1
+ 1087 0093 08       		.byte	0x8
+ 1088 0094 4C020000 		.4byte	.LASF13
+ 1089 0098 02       		.uleb128 0x2
+ 1090 0099 08       		.byte	0x8
+ 1091 009a 04       		.byte	0x4
+ 1092 009b 7A020000 		.4byte	.LASF14
+ 1093 009f 02       		.uleb128 0x2
+ 1094 00a0 04       		.byte	0x4
+ 1095 00a1 07       		.byte	0x7
+ 1096 00a2 35020000 		.4byte	.LASF15
+ 1097 00a6 05       		.uleb128 0x5
+ 1098 00a7 00000000 		.4byte	.LASF29
+ 1099 00ab 01       		.byte	0x1
+ 1100 00ac F1       		.byte	0xf1
+ 1101 00ad 83000000 		.4byte	0x83
+ 1102 00b1 00000000 		.4byte	.LFB4
+ 1103 00b5 84000000 		.4byte	.LFE4-.LFB4
+ 1104 00b9 01       		.uleb128 0x1
+ 1105 00ba 9C       		.byte	0x9c
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 30
+
+
+ 1106 00bb 16010000 		.4byte	0x116
+ 1107 00bf 06       		.uleb128 0x6
+ 1108 00c0 25020000 		.4byte	.LASF16
+ 1109 00c4 01       		.byte	0x1
+ 1110 00c5 F1       		.byte	0xf1
+ 1111 00c6 26010000 		.4byte	0x126
+ 1112 00ca 00000000 		.4byte	.LLST0
+ 1113 00ce 06       		.uleb128 0x6
+ 1114 00cf DD010000 		.4byte	.LASF17
+ 1115 00d3 01       		.byte	0x1
+ 1116 00d4 F2       		.byte	0xf2
+ 1117 00d5 2C010000 		.4byte	0x12c
+ 1118 00d9 1E000000 		.4byte	.LLST1
+ 1119 00dd 07       		.uleb128 0x7
+ 1120 00de 6900     		.ascii	"i\000"
+ 1121 00e0 01       		.byte	0x1
+ 1122 00e1 F7       		.byte	0xf7
+ 1123 00e2 6B000000 		.4byte	0x6b
+ 1124 00e6 3C000000 		.4byte	.LLST2
+ 1125 00ea 07       		.uleb128 0x7
+ 1126 00eb 6A00     		.ascii	"j\000"
+ 1127 00ed 01       		.byte	0x1
+ 1128 00ee F7       		.byte	0xf7
+ 1129 00ef 6B000000 		.4byte	0x6b
+ 1130 00f3 66000000 		.4byte	.LLST3
+ 1131 00f7 08       		.uleb128 0x8
+ 1132 00f8 62020000 		.4byte	.LASF18
+ 1133 00fc 01       		.byte	0x1
+ 1134 00fd F8       		.byte	0xf8
+ 1135 00fe 83000000 		.4byte	0x83
+ 1136 0102 9B000000 		.4byte	.LLST4
+ 1137 0106 08       		.uleb128 0x8
+ 1138 0107 15010000 		.4byte	.LASF19
+ 1139 010b 01       		.byte	0x1
+ 1140 010c F8       		.byte	0xf8
+ 1141 010d 83000000 		.4byte	0x83
+ 1142 0111 DF000000 		.4byte	.LLST5
+ 1143 0115 00       		.byte	0
+ 1144 0116 09       		.uleb128 0x9
+ 1145 0117 83000000 		.4byte	0x83
+ 1146 011b 26010000 		.4byte	0x126
+ 1147 011f 0A       		.uleb128 0xa
+ 1148 0120 9F000000 		.4byte	0x9f
+ 1149 0124 1F       		.byte	0x1f
+ 1150 0125 00       		.byte	0
+ 1151 0126 0B       		.uleb128 0xb
+ 1152 0127 04       		.byte	0x4
+ 1153 0128 16010000 		.4byte	0x116
+ 1154 012c 0B       		.uleb128 0xb
+ 1155 012d 04       		.byte	0x4
+ 1156 012e 83000000 		.4byte	0x83
+ 1157 0132 0C       		.uleb128 0xc
+ 1158 0133 2B020000 		.4byte	.LASF22
+ 1159 0137 01       		.byte	0x1
+ 1160 0138 7501     		.2byte	0x175
+ 1161 013a 00000000 		.4byte	.LFB6
+ 1162 013e 52000000 		.4byte	.LFE6-.LFB6
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 31
+
+
+ 1163 0142 01       		.uleb128 0x1
+ 1164 0143 9C       		.byte	0x9c
+ 1165 0144 A5010000 		.4byte	0x1a5
+ 1166 0148 0D       		.uleb128 0xd
+ 1167 0149 F2010000 		.4byte	.LASF20
+ 1168 014d 01       		.byte	0x1
+ 1169 014e 7501     		.2byte	0x175
+ 1170 0150 26010000 		.4byte	0x126
+ 1171 0154 28010000 		.4byte	.LLST6
+ 1172 0158 0D       		.uleb128 0xd
+ 1173 0159 25020000 		.4byte	.LASF16
+ 1174 015d 01       		.byte	0x1
+ 1175 015e 7601     		.2byte	0x176
+ 1176 0160 26010000 		.4byte	0x126
+ 1177 0164 46010000 		.4byte	.LLST7
+ 1178 0168 0D       		.uleb128 0xd
+ 1179 0169 DD010000 		.4byte	.LASF17
+ 1180 016d 01       		.byte	0x1
+ 1181 016e 7601     		.2byte	0x176
+ 1182 0170 2C010000 		.4byte	0x12c
+ 1183 0174 64010000 		.4byte	.LLST8
+ 1184 0178 0D       		.uleb128 0xd
+ 1185 0179 D6010000 		.4byte	.LASF21
+ 1186 017d 01       		.byte	0x1
+ 1187 017e 7601     		.2byte	0x176
+ 1188 0180 83000000 		.4byte	0x83
+ 1189 0184 82010000 		.4byte	.LLST9
+ 1190 0188 0E       		.uleb128 0xe
+ 1191 0189 6900     		.ascii	"i\000"
+ 1192 018b 01       		.byte	0x1
+ 1193 018c 7801     		.2byte	0x178
+ 1194 018e 6B000000 		.4byte	0x6b
+ 1195 0192 A0010000 		.4byte	.LLST10
+ 1196 0196 0E       		.uleb128 0xe
+ 1197 0197 6A00     		.ascii	"j\000"
+ 1198 0199 01       		.byte	0x1
+ 1199 019a 7801     		.2byte	0x178
+ 1200 019c 6B000000 		.4byte	0x6b
+ 1201 01a0 CA010000 		.4byte	.LLST11
+ 1202 01a4 00       		.byte	0
+ 1203 01a5 0F       		.uleb128 0xf
+ 1204 01a6 646F7400 		.ascii	"dot\000"
+ 1205 01aa 01       		.byte	0x1
+ 1206 01ab D3       		.byte	0xd3
+ 1207 01ac 83000000 		.4byte	0x83
+ 1208 01b0 00000000 		.4byte	.LFB3
+ 1209 01b4 2E000000 		.4byte	.LFE3-.LFB3
+ 1210 01b8 01       		.uleb128 0x1
+ 1211 01b9 9C       		.byte	0x9c
+ 1212 01ba F3010000 		.4byte	0x1f3
+ 1213 01be 10       		.uleb128 0x10
+ 1214 01bf 6100     		.ascii	"a\000"
+ 1215 01c1 01       		.byte	0x1
+ 1216 01c2 D3       		.byte	0xd3
+ 1217 01c3 2C010000 		.4byte	0x12c
+ 1218 01c7 FF010000 		.4byte	.LLST12
+ 1219 01cb 10       		.uleb128 0x10
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 32
+
+
+ 1220 01cc 6200     		.ascii	"b\000"
+ 1221 01ce 01       		.byte	0x1
+ 1222 01cf D3       		.byte	0xd3
+ 1223 01d0 2C010000 		.4byte	0x12c
+ 1224 01d4 1D020000 		.4byte	.LLST13
+ 1225 01d8 07       		.uleb128 0x7
+ 1226 01d9 6900     		.ascii	"i\000"
+ 1227 01db 01       		.byte	0x1
+ 1228 01dc D8       		.byte	0xd8
+ 1229 01dd 6B000000 		.4byte	0x6b
+ 1230 01e1 3B020000 		.4byte	.LLST14
+ 1231 01e5 07       		.uleb128 0x7
+ 1232 01e6 6300     		.ascii	"c\000"
+ 1233 01e8 01       		.byte	0x1
+ 1234 01e9 D9       		.byte	0xd9
+ 1235 01ea 83000000 		.4byte	0x83
+ 1236 01ee 65020000 		.4byte	.LLST15
+ 1237 01f2 00       		.byte	0
+ 1238 01f3 11       		.uleb128 0x11
+ 1239 01f4 3D010000 		.4byte	.LASF23
+ 1240 01f8 01       		.byte	0x1
+ 1241 01f9 9D       		.byte	0x9d
+ 1242 01fa 00000000 		.4byte	.LFB2
+ 1243 01fe A8000000 		.4byte	.LFE2-.LFB2
+ 1244 0202 01       		.uleb128 0x1
+ 1245 0203 9C       		.byte	0x9c
+ 1246 0204 FD020000 		.4byte	0x2fd
+ 1247 0208 06       		.uleb128 0x6
+ 1248 0209 69010000 		.4byte	.LASF24
+ 1249 020d 01       		.byte	0x1
+ 1250 020e 9D       		.byte	0x9d
+ 1251 020f 2C010000 		.4byte	0x12c
+ 1252 0213 9E020000 		.4byte	.LLST16
+ 1253 0217 06       		.uleb128 0x6
+ 1254 0218 25020000 		.4byte	.LASF16
+ 1255 021c 01       		.byte	0x1
+ 1256 021d 9E       		.byte	0x9e
+ 1257 021e 26010000 		.4byte	0x126
+ 1258 0222 BC020000 		.4byte	.LLST17
+ 1259 0226 06       		.uleb128 0x6
+ 1260 0227 DD010000 		.4byte	.LASF17
+ 1261 022b 01       		.byte	0x1
+ 1262 022c 9E       		.byte	0x9e
+ 1263 022d 2C010000 		.4byte	0x12c
+ 1264 0231 DA020000 		.4byte	.LLST18
+ 1265 0235 06       		.uleb128 0x6
+ 1266 0236 2D010000 		.4byte	.LASF25
+ 1267 023a 01       		.byte	0x1
+ 1268 023b 9E       		.byte	0x9e
+ 1269 023c FD020000 		.4byte	0x2fd
+ 1270 0240 F8020000 		.4byte	.LLST19
+ 1271 0244 07       		.uleb128 0x7
+ 1272 0245 6900     		.ascii	"i\000"
+ 1273 0247 01       		.byte	0x1
+ 1274 0248 A4       		.byte	0xa4
+ 1275 0249 6B000000 		.4byte	0x6b
+ 1276 024d 19030000 		.4byte	.LLST20
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 33
+
+
+ 1277 0251 07       		.uleb128 0x7
+ 1278 0252 6A00     		.ascii	"j\000"
+ 1279 0254 01       		.byte	0x1
+ 1280 0255 A4       		.byte	0xa4
+ 1281 0256 6B000000 		.4byte	0x6b
+ 1282 025a 43030000 		.4byte	.LLST21
+ 1283 025e 08       		.uleb128 0x8
+ 1284 025f 86020000 		.4byte	.LASF26
+ 1285 0263 01       		.byte	0x1
+ 1286 0264 A5       		.byte	0xa5
+ 1287 0265 83000000 		.4byte	0x83
+ 1288 0269 A5030000 		.4byte	.LLST22
+ 1289 026d 12       		.uleb128 0x12
+ 1290 026e 34010000 		.4byte	.LASF27
+ 1291 0272 01       		.byte	0x1
+ 1292 0273 A6       		.byte	0xa6
+ 1293 0274 16010000 		.4byte	0x116
+ 1294 0278 03       		.uleb128 0x3
+ 1295 0279 91       		.byte	0x91
+ 1296 027a E07E     		.sleb128 -160
+ 1297 027c 13       		.uleb128 0x13
+ 1298 027d 18000000 		.4byte	.LVL44
+ 1299 0281 BD060000 		.4byte	0x6bd
+ 1300 0285 9B020000 		.4byte	0x29b
+ 1301 0289 14       		.uleb128 0x14
+ 1302 028a 01       		.uleb128 0x1
+ 1303 028b 50       		.byte	0x50
+ 1304 028c 02       		.uleb128 0x2
+ 1305 028d 7D       		.byte	0x7d
+ 1306 028e 00       		.sleb128 0
+ 1307 028f 14       		.uleb128 0x14
+ 1308 0290 01       		.uleb128 0x1
+ 1309 0291 51       		.byte	0x51
+ 1310 0292 01       		.uleb128 0x1
+ 1311 0293 30       		.byte	0x30
+ 1312 0294 14       		.uleb128 0x14
+ 1313 0295 01       		.uleb128 0x1
+ 1314 0296 52       		.byte	0x52
+ 1315 0297 02       		.uleb128 0x2
+ 1316 0298 08       		.byte	0x8
+ 1317 0299 80       		.byte	0x80
+ 1318 029a 00       		.byte	0
+ 1319 029b 13       		.uleb128 0x13
+ 1320 029c 2C000000 		.4byte	.LVL47
+ 1321 02a0 A5010000 		.4byte	0x1a5
+ 1322 02a4 BA020000 		.4byte	0x2ba
+ 1323 02a8 14       		.uleb128 0x14
+ 1324 02a9 01       		.uleb128 0x1
+ 1325 02aa 50       		.byte	0x50
+ 1326 02ab 07       		.uleb128 0x7
+ 1327 02ac 74       		.byte	0x74
+ 1328 02ad 00       		.sleb128 0
+ 1329 02ae 37       		.byte	0x37
+ 1330 02af 24       		.byte	0x24
+ 1331 02b0 76       		.byte	0x76
+ 1332 02b1 00       		.sleb128 0
+ 1333 02b2 22       		.byte	0x22
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 34
+
+
+ 1334 02b3 14       		.uleb128 0x14
+ 1335 02b4 01       		.uleb128 0x1
+ 1336 02b5 51       		.byte	0x51
+ 1337 02b6 02       		.uleb128 0x2
+ 1338 02b7 79       		.byte	0x79
+ 1339 02b8 00       		.sleb128 0
+ 1340 02b9 00       		.byte	0
+ 1341 02ba 13       		.uleb128 0x13
+ 1342 02bb 4E000000 		.4byte	.LVL52
+ 1343 02bf A5010000 		.4byte	0x1a5
+ 1344 02c3 D9020000 		.4byte	0x2d9
+ 1345 02c7 14       		.uleb128 0x14
+ 1346 02c8 01       		.uleb128 0x1
+ 1347 02c9 50       		.byte	0x50
+ 1348 02ca 07       		.uleb128 0x7
+ 1349 02cb 74       		.byte	0x74
+ 1350 02cc 00       		.sleb128 0
+ 1351 02cd 37       		.byte	0x37
+ 1352 02ce 24       		.byte	0x24
+ 1353 02cf 76       		.byte	0x76
+ 1354 02d0 00       		.sleb128 0
+ 1355 02d1 22       		.byte	0x22
+ 1356 02d2 14       		.uleb128 0x14
+ 1357 02d3 01       		.uleb128 0x1
+ 1358 02d4 51       		.byte	0x51
+ 1359 02d5 02       		.uleb128 0x2
+ 1360 02d6 75       		.byte	0x75
+ 1361 02d7 00       		.sleb128 0
+ 1362 02d8 00       		.byte	0
+ 1363 02d9 13       		.uleb128 0x13
+ 1364 02da 68000000 		.4byte	.LVL55
+ 1365 02de A5010000 		.4byte	0x1a5
+ 1366 02e2 F3020000 		.4byte	0x2f3
+ 1367 02e6 14       		.uleb128 0x14
+ 1368 02e7 01       		.uleb128 0x1
+ 1369 02e8 50       		.byte	0x50
+ 1370 02e9 02       		.uleb128 0x2
+ 1371 02ea 7D       		.byte	0x7d
+ 1372 02eb 00       		.sleb128 0
+ 1373 02ec 14       		.uleb128 0x14
+ 1374 02ed 01       		.uleb128 0x1
+ 1375 02ee 51       		.byte	0x51
+ 1376 02ef 02       		.uleb128 0x2
+ 1377 02f0 7D       		.byte	0x7d
+ 1378 02f1 00       		.sleb128 0
+ 1379 02f2 00       		.byte	0
+ 1380 02f3 15       		.uleb128 0x15
+ 1381 02f4 74000000 		.4byte	.LVL58
+ 1382 02f8 C6060000 		.4byte	0x6c6
+ 1383 02fc 00       		.byte	0
+ 1384 02fd 16       		.uleb128 0x16
+ 1385 02fe 6B000000 		.4byte	0x6b
+ 1386 0302 17       		.uleb128 0x17
+ 1387 0303 EF000000 		.4byte	.LASF32
+ 1388 0307 01       		.byte	0x1
+ 1389 0308 9201     		.2byte	0x192
+ 1390 030a 00000000 		.4byte	.LFB7
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 35
+
+
+ 1391 030e 08010000 		.4byte	.LFE7-.LFB7
+ 1392 0312 01       		.uleb128 0x1
+ 1393 0313 9C       		.byte	0x9c
+ 1394 0314 73030000 		.4byte	0x373
+ 1395 0318 0D       		.uleb128 0xd
+ 1396 0319 25020000 		.4byte	.LASF16
+ 1397 031d 01       		.byte	0x1
+ 1398 031e 9201     		.2byte	0x192
+ 1399 0320 26010000 		.4byte	0x126
+ 1400 0324 D3030000 		.4byte	.LLST23
+ 1401 0328 0D       		.uleb128 0xd
+ 1402 0329 18020000 		.4byte	.LASF28
+ 1403 032d 01       		.byte	0x1
+ 1404 032e 9201     		.2byte	0x192
+ 1405 0330 26010000 		.4byte	0x126
+ 1406 0334 F2030000 		.4byte	.LLST24
+ 1407 0338 0E       		.uleb128 0xe
+ 1408 0339 6900     		.ascii	"i\000"
+ 1409 033b 01       		.byte	0x1
+ 1410 033c 9401     		.2byte	0x194
+ 1411 033e 77000000 		.4byte	0x77
+ 1412 0342 10040000 		.4byte	.LLST25
+ 1413 0346 0E       		.uleb128 0xe
+ 1414 0347 6A00     		.ascii	"j\000"
+ 1415 0349 01       		.byte	0x1
+ 1416 034a 9401     		.2byte	0x194
+ 1417 034c 77000000 		.4byte	0x77
+ 1418 0350 46040000 		.4byte	.LLST26
+ 1419 0354 0E       		.uleb128 0xe
+ 1420 0355 6B00     		.ascii	"k\000"
+ 1421 0357 01       		.byte	0x1
+ 1422 0358 9401     		.2byte	0x194
+ 1423 035a 77000000 		.4byte	0x77
+ 1424 035e B3040000 		.4byte	.LLST27
+ 1425 0362 18       		.uleb128 0x18
+ 1426 0363 15010000 		.4byte	.LASF19
+ 1427 0367 01       		.byte	0x1
+ 1428 0368 9501     		.2byte	0x195
+ 1429 036a 83000000 		.4byte	0x83
+ 1430 036e C7040000 		.4byte	.LLST28
+ 1431 0372 00       		.byte	0
+ 1432 0373 19       		.uleb128 0x19
+ 1433 0374 25000000 		.4byte	.LASF30
+ 1434 0378 01       		.byte	0x1
+ 1435 0379 1C01     		.2byte	0x11c
+ 1436 037b 83000000 		.4byte	0x83
+ 1437 037f 00000000 		.4byte	.LFB5
+ 1438 0383 24010000 		.4byte	.LFE5-.LFB5
+ 1439 0387 01       		.uleb128 0x1
+ 1440 0388 9C       		.byte	0x9c
+ 1441 0389 CB040000 		.4byte	0x4cb
+ 1442 038d 0D       		.uleb128 0xd
+ 1443 038e 69010000 		.4byte	.LASF24
+ 1444 0392 01       		.byte	0x1
+ 1445 0393 1C01     		.2byte	0x11c
+ 1446 0395 2C010000 		.4byte	0x12c
+ 1447 0399 E5040000 		.4byte	.LLST29
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 36
+
+
+ 1448 039d 0D       		.uleb128 0xd
+ 1449 039e 25020000 		.4byte	.LASF16
+ 1450 03a2 01       		.byte	0x1
+ 1451 03a3 1D01     		.2byte	0x11d
+ 1452 03a5 26010000 		.4byte	0x126
+ 1453 03a9 11050000 		.4byte	.LLST30
+ 1454 03ad 0D       		.uleb128 0xd
+ 1455 03ae DD010000 		.4byte	.LASF17
+ 1456 03b2 01       		.byte	0x1
+ 1457 03b3 1D01     		.2byte	0x11d
+ 1458 03b5 2C010000 		.4byte	0x12c
+ 1459 03b9 3D050000 		.4byte	.LLST31
+ 1460 03bd 0D       		.uleb128 0xd
+ 1461 03be 51020000 		.4byte	.LASF31
+ 1462 03c2 01       		.byte	0x1
+ 1463 03c3 1D01     		.2byte	0x11d
+ 1464 03c5 FD020000 		.4byte	0x2fd
+ 1465 03c9 69050000 		.4byte	.LLST32
+ 1466 03cd 0E       		.uleb128 0xe
+ 1467 03ce 6900     		.ascii	"i\000"
+ 1468 03d0 01       		.byte	0x1
+ 1469 03d1 1F01     		.2byte	0x11f
+ 1470 03d3 6B000000 		.4byte	0x6b
+ 1471 03d7 8A050000 		.4byte	.LLST33
+ 1472 03db 0E       		.uleb128 0xe
+ 1473 03dc 6A00     		.ascii	"j\000"
+ 1474 03de 01       		.byte	0x1
+ 1475 03df 1F01     		.2byte	0x11f
+ 1476 03e1 6B000000 		.4byte	0x6b
+ 1477 03e5 B4050000 		.4byte	.LLST34
+ 1478 03e9 0E       		.uleb128 0xe
+ 1479 03ea 6B00     		.ascii	"k\000"
+ 1480 03ec 01       		.byte	0x1
+ 1481 03ed 1F01     		.2byte	0x11f
+ 1482 03ef 6B000000 		.4byte	0x6b
+ 1483 03f3 42060000 		.4byte	.LLST35
+ 1484 03f7 18       		.uleb128 0x18
+ 1485 03f8 62020000 		.4byte	.LASF18
+ 1486 03fc 01       		.byte	0x1
+ 1487 03fd 2001     		.2byte	0x120
+ 1488 03ff 83000000 		.4byte	0x83
+ 1489 0403 77060000 		.4byte	.LLST36
+ 1490 0407 18       		.uleb128 0x18
+ 1491 0408 86020000 		.4byte	.LASF26
+ 1492 040c 01       		.byte	0x1
+ 1493 040d 2001     		.2byte	0x120
+ 1494 040f 83000000 		.4byte	0x83
+ 1495 0413 C6060000 		.4byte	.LLST37
+ 1496 0417 1A       		.uleb128 0x1a
+ 1497 0418 34010000 		.4byte	.LASF27
+ 1498 041c 01       		.byte	0x1
+ 1499 041d 2101     		.2byte	0x121
+ 1500 041f 16010000 		.4byte	0x116
+ 1501 0423 03       		.uleb128 0x3
+ 1502 0424 91       		.byte	0x91
+ 1503 0425 D87E     		.sleb128 -168
+ 1504 0427 13       		.uleb128 0x13
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 37
+
+
+ 1505 0428 18000000 		.4byte	.LVL101
+ 1506 042c BD060000 		.4byte	0x6bd
+ 1507 0430 46040000 		.4byte	0x446
+ 1508 0434 14       		.uleb128 0x14
+ 1509 0435 01       		.uleb128 0x1
+ 1510 0436 50       		.byte	0x50
+ 1511 0437 02       		.uleb128 0x2
+ 1512 0438 7D       		.byte	0x7d
+ 1513 0439 00       		.sleb128 0
+ 1514 043a 14       		.uleb128 0x14
+ 1515 043b 01       		.uleb128 0x1
+ 1516 043c 51       		.byte	0x51
+ 1517 043d 01       		.uleb128 0x1
+ 1518 043e 30       		.byte	0x30
+ 1519 043f 14       		.uleb128 0x14
+ 1520 0440 01       		.uleb128 0x1
+ 1521 0441 52       		.byte	0x52
+ 1522 0442 02       		.uleb128 0x2
+ 1523 0443 08       		.byte	0x8
+ 1524 0444 80       		.byte	0x80
+ 1525 0445 00       		.byte	0
+ 1526 0446 13       		.uleb128 0x13
+ 1527 0447 20000000 		.4byte	.LVL102
+ 1528 044b A6000000 		.4byte	0xa6
+ 1529 044f 60040000 		.4byte	0x460
+ 1530 0453 14       		.uleb128 0x14
+ 1531 0454 01       		.uleb128 0x1
+ 1532 0455 50       		.byte	0x50
+ 1533 0456 02       		.uleb128 0x2
+ 1534 0457 76       		.byte	0x76
+ 1535 0458 00       		.sleb128 0
+ 1536 0459 14       		.uleb128 0x14
+ 1537 045a 01       		.uleb128 0x1
+ 1538 045b 51       		.byte	0x51
+ 1539 045c 02       		.uleb128 0x2
+ 1540 045d 7A       		.byte	0x7a
+ 1541 045e 00       		.sleb128 0
+ 1542 045f 00       		.byte	0
+ 1543 0460 15       		.uleb128 0x15
+ 1544 0461 78000000 		.4byte	.LVL114
+ 1545 0465 02030000 		.4byte	0x302
+ 1546 0469 13       		.uleb128 0x13
+ 1547 046a 8E000000 		.4byte	.LVL116
+ 1548 046e A5010000 		.4byte	0x1a5
+ 1549 0472 7D040000 		.4byte	0x47d
+ 1550 0476 14       		.uleb128 0x14
+ 1551 0477 01       		.uleb128 0x1
+ 1552 0478 51       		.byte	0x51
+ 1553 0479 02       		.uleb128 0x2
+ 1554 047a 7A       		.byte	0x7a
+ 1555 047b 00       		.sleb128 0
+ 1556 047c 00       		.byte	0
+ 1557 047d 13       		.uleb128 0x13
+ 1558 047e B2000000 		.4byte	.LVL121
+ 1559 0482 A5010000 		.4byte	0x1a5
+ 1560 0486 91040000 		.4byte	0x491
+ 1561 048a 14       		.uleb128 0x14
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 38
+
+
+ 1562 048b 01       		.uleb128 0x1
+ 1563 048c 51       		.byte	0x51
+ 1564 048d 02       		.uleb128 0x2
+ 1565 048e 77       		.byte	0x77
+ 1566 048f 00       		.sleb128 0
+ 1567 0490 00       		.byte	0
+ 1568 0491 13       		.uleb128 0x13
+ 1569 0492 CC000000 		.4byte	.LVL124
+ 1570 0496 A5010000 		.4byte	0x1a5
+ 1571 049a AB040000 		.4byte	0x4ab
+ 1572 049e 14       		.uleb128 0x14
+ 1573 049f 01       		.uleb128 0x1
+ 1574 04a0 50       		.byte	0x50
+ 1575 04a1 02       		.uleb128 0x2
+ 1576 04a2 7D       		.byte	0x7d
+ 1577 04a3 00       		.sleb128 0
+ 1578 04a4 14       		.uleb128 0x14
+ 1579 04a5 01       		.uleb128 0x1
+ 1580 04a6 51       		.byte	0x51
+ 1581 04a7 02       		.uleb128 0x2
+ 1582 04a8 7D       		.byte	0x7d
+ 1583 04a9 00       		.sleb128 0
+ 1584 04aa 00       		.byte	0
+ 1585 04ab 15       		.uleb128 0x15
+ 1586 04ac D8000000 		.4byte	.LVL127
+ 1587 04b0 C6060000 		.4byte	0x6c6
+ 1588 04b4 1B       		.uleb128 0x1b
+ 1589 04b5 06010000 		.4byte	.LVL134
+ 1590 04b9 A6000000 		.4byte	0xa6
+ 1591 04bd 14       		.uleb128 0x14
+ 1592 04be 01       		.uleb128 0x1
+ 1593 04bf 50       		.byte	0x50
+ 1594 04c0 02       		.uleb128 0x2
+ 1595 04c1 76       		.byte	0x76
+ 1596 04c2 00       		.sleb128 0
+ 1597 04c3 14       		.uleb128 0x14
+ 1598 04c4 01       		.uleb128 0x1
+ 1599 04c5 51       		.byte	0x51
+ 1600 04c6 02       		.uleb128 0x2
+ 1601 04c7 77       		.byte	0x77
+ 1602 04c8 00       		.sleb128 0
+ 1603 04c9 00       		.byte	0
+ 1604 04ca 00       		.byte	0
+ 1605 04cb 1C       		.uleb128 0x1c
+ 1606 04cc 1A000000 		.4byte	.LASF33
+ 1607 04d0 01       		.byte	0x1
+ 1608 04d1 4B       		.byte	0x4b
+ 1609 04d2 00000000 		.4byte	.LFB1
+ 1610 04d6 E8000000 		.4byte	.LFE1-.LFB1
+ 1611 04da 01       		.uleb128 0x1
+ 1612 04db 9C       		.byte	0x9c
+ 1613 04dc 89060000 		.4byte	0x689
+ 1614 04e0 06       		.uleb128 0x6
+ 1615 04e1 D6010000 		.4byte	.LASF21
+ 1616 04e5 01       		.byte	0x1
+ 1617 04e6 4B       		.byte	0x4b
+ 1618 04e7 2C010000 		.4byte	0x12c
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 39
+
+
+ 1619 04eb F4060000 		.4byte	.LLST38
+ 1620 04ef 10       		.uleb128 0x10
+ 1621 04f0 50686900 		.ascii	"Phi\000"
+ 1622 04f4 01       		.byte	0x1
+ 1623 04f5 4C       		.byte	0x4c
+ 1624 04f6 26010000 		.4byte	0x126
+ 1625 04fa 36070000 		.4byte	.LLST39
+ 1626 04fe 06       		.uleb128 0x6
+ 1627 04ff 25020000 		.4byte	.LASF16
+ 1628 0503 01       		.byte	0x1
+ 1629 0504 4C       		.byte	0x4c
+ 1630 0505 26010000 		.4byte	0x126
+ 1631 0509 78070000 		.4byte	.LLST40
+ 1632 050d 06       		.uleb128 0x6
+ 1633 050e 5B010000 		.4byte	.LASF34
+ 1634 0512 01       		.byte	0x1
+ 1635 0513 4D       		.byte	0x4d
+ 1636 0514 26010000 		.4byte	0x126
+ 1637 0518 BA070000 		.4byte	.LLST41
+ 1638 051c 06       		.uleb128 0x6
+ 1639 051d 2D010000 		.4byte	.LASF25
+ 1640 0521 01       		.byte	0x1
+ 1641 0522 4D       		.byte	0x4d
+ 1642 0523 FD020000 		.4byte	0x2fd
+ 1643 0527 FC070000 		.4byte	.LLST42
+ 1644 052b 06       		.uleb128 0x6
+ 1645 052c 51020000 		.4byte	.LASF31
+ 1646 0530 01       		.byte	0x1
+ 1647 0531 4E       		.byte	0x4e
+ 1648 0532 FD020000 		.4byte	0x2fd
+ 1649 0536 1C080000 		.4byte	.LLST43
+ 1650 053a 07       		.uleb128 0x7
+ 1651 053b 6900     		.ascii	"i\000"
+ 1652 053d 01       		.byte	0x1
+ 1653 053e 50       		.byte	0x50
+ 1654 053f 6B000000 		.4byte	0x6b
+ 1655 0543 3C080000 		.4byte	.LLST44
+ 1656 0547 13       		.uleb128 0x13
+ 1657 0548 22000000 		.4byte	.LVL145
+ 1658 054c F3010000 		.4byte	0x1f3
+ 1659 0550 6D050000 		.4byte	0x56d
+ 1660 0554 14       		.uleb128 0x14
+ 1661 0555 01       		.uleb128 0x1
+ 1662 0556 50       		.byte	0x50
+ 1663 0557 02       		.uleb128 0x2
+ 1664 0558 75       		.byte	0x75
+ 1665 0559 00       		.sleb128 0
+ 1666 055a 14       		.uleb128 0x14
+ 1667 055b 01       		.uleb128 0x1
+ 1668 055c 51       		.byte	0x51
+ 1669 055d 02       		.uleb128 0x2
+ 1670 055e 7A       		.byte	0x7a
+ 1671 055f 00       		.sleb128 0
+ 1672 0560 14       		.uleb128 0x14
+ 1673 0561 01       		.uleb128 0x1
+ 1674 0562 52       		.byte	0x52
+ 1675 0563 02       		.uleb128 0x2
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 40
+
+
+ 1676 0564 79       		.byte	0x79
+ 1677 0565 00       		.sleb128 0
+ 1678 0566 14       		.uleb128 0x14
+ 1679 0567 01       		.uleb128 0x1
+ 1680 0568 53       		.byte	0x53
+ 1681 0569 02       		.uleb128 0x2
+ 1682 056a 76       		.byte	0x76
+ 1683 056b 00       		.sleb128 0
+ 1684 056c 00       		.byte	0
+ 1685 056d 13       		.uleb128 0x13
+ 1686 056e 2C000000 		.4byte	.LVL146
+ 1687 0572 A6000000 		.4byte	0xa6
+ 1688 0576 87050000 		.4byte	0x587
+ 1689 057a 14       		.uleb128 0x14
+ 1690 057b 01       		.uleb128 0x1
+ 1691 057c 50       		.byte	0x50
+ 1692 057d 02       		.uleb128 0x2
+ 1693 057e 7A       		.byte	0x7a
+ 1694 057f 00       		.sleb128 0
+ 1695 0580 14       		.uleb128 0x14
+ 1696 0581 01       		.uleb128 0x1
+ 1697 0582 51       		.byte	0x51
+ 1698 0583 02       		.uleb128 0x2
+ 1699 0584 75       		.byte	0x75
+ 1700 0585 00       		.sleb128 0
+ 1701 0586 00       		.byte	0
+ 1702 0587 13       		.uleb128 0x13
+ 1703 0588 3E000000 		.4byte	.LVL147
+ 1704 058c 73030000 		.4byte	0x373
+ 1705 0590 AD050000 		.4byte	0x5ad
+ 1706 0594 14       		.uleb128 0x14
+ 1707 0595 01       		.uleb128 0x1
+ 1708 0596 50       		.byte	0x50
+ 1709 0597 02       		.uleb128 0x2
+ 1710 0598 75       		.byte	0x75
+ 1711 0599 00       		.sleb128 0
+ 1712 059a 14       		.uleb128 0x14
+ 1713 059b 01       		.uleb128 0x1
+ 1714 059c 51       		.byte	0x51
+ 1715 059d 02       		.uleb128 0x2
+ 1716 059e 7A       		.byte	0x7a
+ 1717 059f 00       		.sleb128 0
+ 1718 05a0 14       		.uleb128 0x14
+ 1719 05a1 01       		.uleb128 0x1
+ 1720 05a2 52       		.byte	0x52
+ 1721 05a3 02       		.uleb128 0x2
+ 1722 05a4 75       		.byte	0x75
+ 1723 05a5 00       		.sleb128 0
+ 1724 05a6 14       		.uleb128 0x14
+ 1725 05a7 01       		.uleb128 0x1
+ 1726 05a8 53       		.byte	0x53
+ 1727 05a9 02       		.uleb128 0x2
+ 1728 05aa 77       		.byte	0x77
+ 1729 05ab 00       		.sleb128 0
+ 1730 05ac 00       		.byte	0
+ 1731 05ad 13       		.uleb128 0x13
+ 1732 05ae 52000000 		.4byte	.LVL153
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 41
+
+
+ 1733 05b2 73030000 		.4byte	0x373
+ 1734 05b6 D3050000 		.4byte	0x5d3
+ 1735 05ba 14       		.uleb128 0x14
+ 1736 05bb 01       		.uleb128 0x1
+ 1737 05bc 50       		.byte	0x50
+ 1738 05bd 02       		.uleb128 0x2
+ 1739 05be 75       		.byte	0x75
+ 1740 05bf 00       		.sleb128 0
+ 1741 05c0 14       		.uleb128 0x14
+ 1742 05c1 01       		.uleb128 0x1
+ 1743 05c2 51       		.byte	0x51
+ 1744 05c3 02       		.uleb128 0x2
+ 1745 05c4 7A       		.byte	0x7a
+ 1746 05c5 00       		.sleb128 0
+ 1747 05c6 14       		.uleb128 0x14
+ 1748 05c7 01       		.uleb128 0x1
+ 1749 05c8 52       		.byte	0x52
+ 1750 05c9 02       		.uleb128 0x2
+ 1751 05ca 79       		.byte	0x79
+ 1752 05cb 00       		.sleb128 0
+ 1753 05cc 14       		.uleb128 0x14
+ 1754 05cd 01       		.uleb128 0x1
+ 1755 05ce 53       		.byte	0x53
+ 1756 05cf 02       		.uleb128 0x2
+ 1757 05d0 77       		.byte	0x77
+ 1758 05d1 00       		.sleb128 0
+ 1759 05d2 00       		.byte	0
+ 1760 05d3 13       		.uleb128 0x13
+ 1761 05d4 6C000000 		.4byte	.LVL155
+ 1762 05d8 32010000 		.4byte	0x132
+ 1763 05dc ED050000 		.4byte	0x5ed
+ 1764 05e0 14       		.uleb128 0x14
+ 1765 05e1 01       		.uleb128 0x1
+ 1766 05e2 51       		.byte	0x51
+ 1767 05e3 02       		.uleb128 0x2
+ 1768 05e4 7A       		.byte	0x7a
+ 1769 05e5 00       		.sleb128 0
+ 1770 05e6 14       		.uleb128 0x14
+ 1771 05e7 01       		.uleb128 0x1
+ 1772 05e8 52       		.byte	0x52
+ 1773 05e9 02       		.uleb128 0x2
+ 1774 05ea 75       		.byte	0x75
+ 1775 05eb 00       		.sleb128 0
+ 1776 05ec 00       		.byte	0
+ 1777 05ed 13       		.uleb128 0x13
+ 1778 05ee 8A000000 		.4byte	.LVL156
+ 1779 05f2 32010000 		.4byte	0x132
+ 1780 05f6 09060000 		.4byte	0x609
+ 1781 05fa 14       		.uleb128 0x14
+ 1782 05fb 01       		.uleb128 0x1
+ 1783 05fc 52       		.byte	0x52
+ 1784 05fd 0A       		.uleb128 0xa
+ 1785 05fe 74       		.byte	0x74
+ 1786 05ff FFFFFF0F 		.sleb128 33554431
+ 1787 0603 37       		.byte	0x37
+ 1788 0604 24       		.byte	0x24
+ 1789 0605 75       		.byte	0x75
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 42
+
+
+ 1790 0606 00       		.sleb128 0
+ 1791 0607 22       		.byte	0x22
+ 1792 0608 00       		.byte	0
+ 1793 0609 13       		.uleb128 0x13
+ 1794 060a 9E000000 		.4byte	.LVL157
+ 1795 060e F3010000 		.4byte	0x1f3
+ 1796 0612 2E060000 		.4byte	0x62e
+ 1797 0616 14       		.uleb128 0x14
+ 1798 0617 01       		.uleb128 0x1
+ 1799 0618 50       		.byte	0x50
+ 1800 0619 02       		.uleb128 0x2
+ 1801 061a 7B       		.byte	0x7b
+ 1802 061b 00       		.sleb128 0
+ 1803 061c 14       		.uleb128 0x14
+ 1804 061d 01       		.uleb128 0x1
+ 1805 061e 52       		.byte	0x52
+ 1806 061f 07       		.uleb128 0x7
+ 1807 0620 74       		.byte	0x74
+ 1808 0621 00       		.sleb128 0
+ 1809 0622 37       		.byte	0x37
+ 1810 0623 24       		.byte	0x24
+ 1811 0624 79       		.byte	0x79
+ 1812 0625 00       		.sleb128 0
+ 1813 0626 22       		.byte	0x22
+ 1814 0627 14       		.uleb128 0x14
+ 1815 0628 01       		.uleb128 0x1
+ 1816 0629 53       		.byte	0x53
+ 1817 062a 02       		.uleb128 0x2
+ 1818 062b 76       		.byte	0x76
+ 1819 062c 00       		.sleb128 0
+ 1820 062d 00       		.byte	0
+ 1821 062e 13       		.uleb128 0x13
+ 1822 062f A8000000 		.4byte	.LVL158
+ 1823 0633 A6000000 		.4byte	0xa6
+ 1824 0637 42060000 		.4byte	0x642
+ 1825 063b 14       		.uleb128 0x14
+ 1826 063c 01       		.uleb128 0x1
+ 1827 063d 51       		.byte	0x51
+ 1828 063e 02       		.uleb128 0x2
+ 1829 063f 7B       		.byte	0x7b
+ 1830 0640 00       		.sleb128 0
+ 1831 0641 00       		.byte	0
+ 1832 0642 13       		.uleb128 0x13
+ 1833 0643 BA000000 		.4byte	.LVL159
+ 1834 0647 73030000 		.4byte	0x373
+ 1835 064b 62060000 		.4byte	0x662
+ 1836 064f 14       		.uleb128 0x14
+ 1837 0650 01       		.uleb128 0x1
+ 1838 0651 50       		.byte	0x50
+ 1839 0652 02       		.uleb128 0x2
+ 1840 0653 7B       		.byte	0x7b
+ 1841 0654 00       		.sleb128 0
+ 1842 0655 14       		.uleb128 0x14
+ 1843 0656 01       		.uleb128 0x1
+ 1844 0657 52       		.byte	0x52
+ 1845 0658 02       		.uleb128 0x2
+ 1846 0659 7B       		.byte	0x7b
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 43
+
+
+ 1847 065a 00       		.sleb128 0
+ 1848 065b 14       		.uleb128 0x14
+ 1849 065c 01       		.uleb128 0x1
+ 1850 065d 53       		.byte	0x53
+ 1851 065e 02       		.uleb128 0x2
+ 1852 065f 77       		.byte	0x77
+ 1853 0660 00       		.sleb128 0
+ 1854 0661 00       		.byte	0
+ 1855 0662 1B       		.uleb128 0x1b
+ 1856 0663 D2000000 		.4byte	.LVL160
+ 1857 0667 73030000 		.4byte	0x373
+ 1858 066b 14       		.uleb128 0x14
+ 1859 066c 01       		.uleb128 0x1
+ 1860 066d 50       		.byte	0x50
+ 1861 066e 07       		.uleb128 0x7
+ 1862 066f 74       		.byte	0x74
+ 1863 0670 00       		.sleb128 0
+ 1864 0671 37       		.byte	0x37
+ 1865 0672 24       		.byte	0x24
+ 1866 0673 75       		.byte	0x75
+ 1867 0674 00       		.sleb128 0
+ 1868 0675 22       		.byte	0x22
+ 1869 0676 14       		.uleb128 0x14
+ 1870 0677 01       		.uleb128 0x1
+ 1871 0678 52       		.byte	0x52
+ 1872 0679 07       		.uleb128 0x7
+ 1873 067a 74       		.byte	0x74
+ 1874 067b 00       		.sleb128 0
+ 1875 067c 37       		.byte	0x37
+ 1876 067d 24       		.byte	0x24
+ 1877 067e 79       		.byte	0x79
+ 1878 067f 00       		.sleb128 0
+ 1879 0680 22       		.byte	0x22
+ 1880 0681 14       		.uleb128 0x14
+ 1881 0682 01       		.uleb128 0x1
+ 1882 0683 53       		.byte	0x53
+ 1883 0684 02       		.uleb128 0x2
+ 1884 0685 77       		.byte	0x77
+ 1885 0686 00       		.sleb128 0
+ 1886 0687 00       		.byte	0
+ 1887 0688 00       		.byte	0
+ 1888 0689 09       		.uleb128 0x9
+ 1889 068a 83000000 		.4byte	0x83
+ 1890 068e 9F060000 		.4byte	0x69f
+ 1891 0692 0A       		.uleb128 0xa
+ 1892 0693 9F000000 		.4byte	0x9f
+ 1893 0697 1F       		.byte	0x1f
+ 1894 0698 0A       		.uleb128 0xa
+ 1895 0699 9F000000 		.4byte	0x9f
+ 1896 069d 1F       		.byte	0x1f
+ 1897 069e 00       		.byte	0
+ 1898 069f 1D       		.uleb128 0x1d
+ 1899 06a0 573100   		.ascii	"W1\000"
+ 1900 06a3 01       		.byte	0x1
+ 1901 06a4 20       		.byte	0x20
+ 1902 06a5 89060000 		.4byte	0x689
+ 1903 06a9 1D       		.uleb128 0x1d
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 44
+
+
+ 1904 06aa 573200   		.ascii	"W2\000"
+ 1905 06ad 01       		.byte	0x1
+ 1906 06ae 21       		.byte	0x21
+ 1907 06af 89060000 		.4byte	0x689
+ 1908 06b3 1D       		.uleb128 0x1d
+ 1909 06b4 573300   		.ascii	"W3\000"
+ 1910 06b7 01       		.byte	0x1
+ 1911 06b8 22       		.byte	0x22
+ 1912 06b9 89060000 		.4byte	0x689
+ 1913 06bd 1E       		.uleb128 0x1e
+ 1914 06be 4D010000 		.4byte	.LASF38
+ 1915 06c2 4D010000 		.4byte	.LASF38
+ 1916 06c6 1F       		.uleb128 0x1f
+ 1917 06c7 8D020000 		.4byte	.LASF39
+ 1918 06cb 8D020000 		.4byte	.LASF39
+ 1919 06cf 03       		.byte	0x3
+ 1920 06d0 87       		.byte	0x87
+ 1921 06d1 00       		.byte	0
+ 1922              		.section	.debug_abbrev,"",%progbits
+ 1923              	.Ldebug_abbrev0:
+ 1924 0000 01       		.uleb128 0x1
+ 1925 0001 11       		.uleb128 0x11
+ 1926 0002 01       		.byte	0x1
+ 1927 0003 25       		.uleb128 0x25
+ 1928 0004 0E       		.uleb128 0xe
+ 1929 0005 13       		.uleb128 0x13
+ 1930 0006 0B       		.uleb128 0xb
+ 1931 0007 03       		.uleb128 0x3
+ 1932 0008 0E       		.uleb128 0xe
+ 1933 0009 1B       		.uleb128 0x1b
+ 1934 000a 0E       		.uleb128 0xe
+ 1935 000b 55       		.uleb128 0x55
+ 1936 000c 17       		.uleb128 0x17
+ 1937 000d 11       		.uleb128 0x11
+ 1938 000e 01       		.uleb128 0x1
+ 1939 000f 10       		.uleb128 0x10
+ 1940 0010 17       		.uleb128 0x17
+ 1941 0011 00       		.byte	0
+ 1942 0012 00       		.byte	0
+ 1943 0013 02       		.uleb128 0x2
+ 1944 0014 24       		.uleb128 0x24
+ 1945 0015 00       		.byte	0
+ 1946 0016 0B       		.uleb128 0xb
+ 1947 0017 0B       		.uleb128 0xb
+ 1948 0018 3E       		.uleb128 0x3e
+ 1949 0019 0B       		.uleb128 0xb
+ 1950 001a 03       		.uleb128 0x3
+ 1951 001b 0E       		.uleb128 0xe
+ 1952 001c 00       		.byte	0
+ 1953 001d 00       		.byte	0
+ 1954 001e 03       		.uleb128 0x3
+ 1955 001f 24       		.uleb128 0x24
+ 1956 0020 00       		.byte	0
+ 1957 0021 0B       		.uleb128 0xb
+ 1958 0022 0B       		.uleb128 0xb
+ 1959 0023 3E       		.uleb128 0x3e
+ 1960 0024 0B       		.uleb128 0xb
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 45
+
+
+ 1961 0025 03       		.uleb128 0x3
+ 1962 0026 08       		.uleb128 0x8
+ 1963 0027 00       		.byte	0
+ 1964 0028 00       		.byte	0
+ 1965 0029 04       		.uleb128 0x4
+ 1966 002a 16       		.uleb128 0x16
+ 1967 002b 00       		.byte	0
+ 1968 002c 03       		.uleb128 0x3
+ 1969 002d 0E       		.uleb128 0xe
+ 1970 002e 3A       		.uleb128 0x3a
+ 1971 002f 0B       		.uleb128 0xb
+ 1972 0030 3B       		.uleb128 0x3b
+ 1973 0031 05       		.uleb128 0x5
+ 1974 0032 49       		.uleb128 0x49
+ 1975 0033 13       		.uleb128 0x13
+ 1976 0034 00       		.byte	0
+ 1977 0035 00       		.byte	0
+ 1978 0036 05       		.uleb128 0x5
+ 1979 0037 2E       		.uleb128 0x2e
+ 1980 0038 01       		.byte	0x1
+ 1981 0039 03       		.uleb128 0x3
+ 1982 003a 0E       		.uleb128 0xe
+ 1983 003b 3A       		.uleb128 0x3a
+ 1984 003c 0B       		.uleb128 0xb
+ 1985 003d 3B       		.uleb128 0x3b
+ 1986 003e 0B       		.uleb128 0xb
+ 1987 003f 27       		.uleb128 0x27
+ 1988 0040 19       		.uleb128 0x19
+ 1989 0041 49       		.uleb128 0x49
+ 1990 0042 13       		.uleb128 0x13
+ 1991 0043 11       		.uleb128 0x11
+ 1992 0044 01       		.uleb128 0x1
+ 1993 0045 12       		.uleb128 0x12
+ 1994 0046 06       		.uleb128 0x6
+ 1995 0047 40       		.uleb128 0x40
+ 1996 0048 18       		.uleb128 0x18
+ 1997 0049 9642     		.uleb128 0x2116
+ 1998 004b 19       		.uleb128 0x19
+ 1999 004c 01       		.uleb128 0x1
+ 2000 004d 13       		.uleb128 0x13
+ 2001 004e 00       		.byte	0
+ 2002 004f 00       		.byte	0
+ 2003 0050 06       		.uleb128 0x6
+ 2004 0051 05       		.uleb128 0x5
+ 2005 0052 00       		.byte	0
+ 2006 0053 03       		.uleb128 0x3
+ 2007 0054 0E       		.uleb128 0xe
+ 2008 0055 3A       		.uleb128 0x3a
+ 2009 0056 0B       		.uleb128 0xb
+ 2010 0057 3B       		.uleb128 0x3b
+ 2011 0058 0B       		.uleb128 0xb
+ 2012 0059 49       		.uleb128 0x49
+ 2013 005a 13       		.uleb128 0x13
+ 2014 005b 02       		.uleb128 0x2
+ 2015 005c 17       		.uleb128 0x17
+ 2016 005d 00       		.byte	0
+ 2017 005e 00       		.byte	0
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 46
+
+
+ 2018 005f 07       		.uleb128 0x7
+ 2019 0060 34       		.uleb128 0x34
+ 2020 0061 00       		.byte	0
+ 2021 0062 03       		.uleb128 0x3
+ 2022 0063 08       		.uleb128 0x8
+ 2023 0064 3A       		.uleb128 0x3a
+ 2024 0065 0B       		.uleb128 0xb
+ 2025 0066 3B       		.uleb128 0x3b
+ 2026 0067 0B       		.uleb128 0xb
+ 2027 0068 49       		.uleb128 0x49
+ 2028 0069 13       		.uleb128 0x13
+ 2029 006a 02       		.uleb128 0x2
+ 2030 006b 17       		.uleb128 0x17
+ 2031 006c 00       		.byte	0
+ 2032 006d 00       		.byte	0
+ 2033 006e 08       		.uleb128 0x8
+ 2034 006f 34       		.uleb128 0x34
+ 2035 0070 00       		.byte	0
+ 2036 0071 03       		.uleb128 0x3
+ 2037 0072 0E       		.uleb128 0xe
+ 2038 0073 3A       		.uleb128 0x3a
+ 2039 0074 0B       		.uleb128 0xb
+ 2040 0075 3B       		.uleb128 0x3b
+ 2041 0076 0B       		.uleb128 0xb
+ 2042 0077 49       		.uleb128 0x49
+ 2043 0078 13       		.uleb128 0x13
+ 2044 0079 02       		.uleb128 0x2
+ 2045 007a 17       		.uleb128 0x17
+ 2046 007b 00       		.byte	0
+ 2047 007c 00       		.byte	0
+ 2048 007d 09       		.uleb128 0x9
+ 2049 007e 01       		.uleb128 0x1
+ 2050 007f 01       		.byte	0x1
+ 2051 0080 49       		.uleb128 0x49
+ 2052 0081 13       		.uleb128 0x13
+ 2053 0082 01       		.uleb128 0x1
+ 2054 0083 13       		.uleb128 0x13
+ 2055 0084 00       		.byte	0
+ 2056 0085 00       		.byte	0
+ 2057 0086 0A       		.uleb128 0xa
+ 2058 0087 21       		.uleb128 0x21
+ 2059 0088 00       		.byte	0
+ 2060 0089 49       		.uleb128 0x49
+ 2061 008a 13       		.uleb128 0x13
+ 2062 008b 2F       		.uleb128 0x2f
+ 2063 008c 0B       		.uleb128 0xb
+ 2064 008d 00       		.byte	0
+ 2065 008e 00       		.byte	0
+ 2066 008f 0B       		.uleb128 0xb
+ 2067 0090 0F       		.uleb128 0xf
+ 2068 0091 00       		.byte	0
+ 2069 0092 0B       		.uleb128 0xb
+ 2070 0093 0B       		.uleb128 0xb
+ 2071 0094 49       		.uleb128 0x49
+ 2072 0095 13       		.uleb128 0x13
+ 2073 0096 00       		.byte	0
+ 2074 0097 00       		.byte	0
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 47
+
+
+ 2075 0098 0C       		.uleb128 0xc
+ 2076 0099 2E       		.uleb128 0x2e
+ 2077 009a 01       		.byte	0x1
+ 2078 009b 03       		.uleb128 0x3
+ 2079 009c 0E       		.uleb128 0xe
+ 2080 009d 3A       		.uleb128 0x3a
+ 2081 009e 0B       		.uleb128 0xb
+ 2082 009f 3B       		.uleb128 0x3b
+ 2083 00a0 05       		.uleb128 0x5
+ 2084 00a1 27       		.uleb128 0x27
+ 2085 00a2 19       		.uleb128 0x19
+ 2086 00a3 11       		.uleb128 0x11
+ 2087 00a4 01       		.uleb128 0x1
+ 2088 00a5 12       		.uleb128 0x12
+ 2089 00a6 06       		.uleb128 0x6
+ 2090 00a7 40       		.uleb128 0x40
+ 2091 00a8 18       		.uleb128 0x18
+ 2092 00a9 9642     		.uleb128 0x2116
+ 2093 00ab 19       		.uleb128 0x19
+ 2094 00ac 01       		.uleb128 0x1
+ 2095 00ad 13       		.uleb128 0x13
+ 2096 00ae 00       		.byte	0
+ 2097 00af 00       		.byte	0
+ 2098 00b0 0D       		.uleb128 0xd
+ 2099 00b1 05       		.uleb128 0x5
+ 2100 00b2 00       		.byte	0
+ 2101 00b3 03       		.uleb128 0x3
+ 2102 00b4 0E       		.uleb128 0xe
+ 2103 00b5 3A       		.uleb128 0x3a
+ 2104 00b6 0B       		.uleb128 0xb
+ 2105 00b7 3B       		.uleb128 0x3b
+ 2106 00b8 05       		.uleb128 0x5
+ 2107 00b9 49       		.uleb128 0x49
+ 2108 00ba 13       		.uleb128 0x13
+ 2109 00bb 02       		.uleb128 0x2
+ 2110 00bc 17       		.uleb128 0x17
+ 2111 00bd 00       		.byte	0
+ 2112 00be 00       		.byte	0
+ 2113 00bf 0E       		.uleb128 0xe
+ 2114 00c0 34       		.uleb128 0x34
+ 2115 00c1 00       		.byte	0
+ 2116 00c2 03       		.uleb128 0x3
+ 2117 00c3 08       		.uleb128 0x8
+ 2118 00c4 3A       		.uleb128 0x3a
+ 2119 00c5 0B       		.uleb128 0xb
+ 2120 00c6 3B       		.uleb128 0x3b
+ 2121 00c7 05       		.uleb128 0x5
+ 2122 00c8 49       		.uleb128 0x49
+ 2123 00c9 13       		.uleb128 0x13
+ 2124 00ca 02       		.uleb128 0x2
+ 2125 00cb 17       		.uleb128 0x17
+ 2126 00cc 00       		.byte	0
+ 2127 00cd 00       		.byte	0
+ 2128 00ce 0F       		.uleb128 0xf
+ 2129 00cf 2E       		.uleb128 0x2e
+ 2130 00d0 01       		.byte	0x1
+ 2131 00d1 3F       		.uleb128 0x3f
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 48
+
+
+ 2132 00d2 19       		.uleb128 0x19
+ 2133 00d3 03       		.uleb128 0x3
+ 2134 00d4 08       		.uleb128 0x8
+ 2135 00d5 3A       		.uleb128 0x3a
+ 2136 00d6 0B       		.uleb128 0xb
+ 2137 00d7 3B       		.uleb128 0x3b
+ 2138 00d8 0B       		.uleb128 0xb
+ 2139 00d9 27       		.uleb128 0x27
+ 2140 00da 19       		.uleb128 0x19
+ 2141 00db 49       		.uleb128 0x49
+ 2142 00dc 13       		.uleb128 0x13
+ 2143 00dd 11       		.uleb128 0x11
+ 2144 00de 01       		.uleb128 0x1
+ 2145 00df 12       		.uleb128 0x12
+ 2146 00e0 06       		.uleb128 0x6
+ 2147 00e1 40       		.uleb128 0x40
+ 2148 00e2 18       		.uleb128 0x18
+ 2149 00e3 9642     		.uleb128 0x2116
+ 2150 00e5 19       		.uleb128 0x19
+ 2151 00e6 01       		.uleb128 0x1
+ 2152 00e7 13       		.uleb128 0x13
+ 2153 00e8 00       		.byte	0
+ 2154 00e9 00       		.byte	0
+ 2155 00ea 10       		.uleb128 0x10
+ 2156 00eb 05       		.uleb128 0x5
+ 2157 00ec 00       		.byte	0
+ 2158 00ed 03       		.uleb128 0x3
+ 2159 00ee 08       		.uleb128 0x8
+ 2160 00ef 3A       		.uleb128 0x3a
+ 2161 00f0 0B       		.uleb128 0xb
+ 2162 00f1 3B       		.uleb128 0x3b
+ 2163 00f2 0B       		.uleb128 0xb
+ 2164 00f3 49       		.uleb128 0x49
+ 2165 00f4 13       		.uleb128 0x13
+ 2166 00f5 02       		.uleb128 0x2
+ 2167 00f6 17       		.uleb128 0x17
+ 2168 00f7 00       		.byte	0
+ 2169 00f8 00       		.byte	0
+ 2170 00f9 11       		.uleb128 0x11
+ 2171 00fa 2E       		.uleb128 0x2e
+ 2172 00fb 01       		.byte	0x1
+ 2173 00fc 03       		.uleb128 0x3
+ 2174 00fd 0E       		.uleb128 0xe
+ 2175 00fe 3A       		.uleb128 0x3a
+ 2176 00ff 0B       		.uleb128 0xb
+ 2177 0100 3B       		.uleb128 0x3b
+ 2178 0101 0B       		.uleb128 0xb
+ 2179 0102 27       		.uleb128 0x27
+ 2180 0103 19       		.uleb128 0x19
+ 2181 0104 11       		.uleb128 0x11
+ 2182 0105 01       		.uleb128 0x1
+ 2183 0106 12       		.uleb128 0x12
+ 2184 0107 06       		.uleb128 0x6
+ 2185 0108 40       		.uleb128 0x40
+ 2186 0109 18       		.uleb128 0x18
+ 2187 010a 9642     		.uleb128 0x2116
+ 2188 010c 19       		.uleb128 0x19
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 49
+
+
+ 2189 010d 01       		.uleb128 0x1
+ 2190 010e 13       		.uleb128 0x13
+ 2191 010f 00       		.byte	0
+ 2192 0110 00       		.byte	0
+ 2193 0111 12       		.uleb128 0x12
+ 2194 0112 34       		.uleb128 0x34
+ 2195 0113 00       		.byte	0
+ 2196 0114 03       		.uleb128 0x3
+ 2197 0115 0E       		.uleb128 0xe
+ 2198 0116 3A       		.uleb128 0x3a
+ 2199 0117 0B       		.uleb128 0xb
+ 2200 0118 3B       		.uleb128 0x3b
+ 2201 0119 0B       		.uleb128 0xb
+ 2202 011a 49       		.uleb128 0x49
+ 2203 011b 13       		.uleb128 0x13
+ 2204 011c 02       		.uleb128 0x2
+ 2205 011d 18       		.uleb128 0x18
+ 2206 011e 00       		.byte	0
+ 2207 011f 00       		.byte	0
+ 2208 0120 13       		.uleb128 0x13
+ 2209 0121 898201   		.uleb128 0x4109
+ 2210 0124 01       		.byte	0x1
+ 2211 0125 11       		.uleb128 0x11
+ 2212 0126 01       		.uleb128 0x1
+ 2213 0127 31       		.uleb128 0x31
+ 2214 0128 13       		.uleb128 0x13
+ 2215 0129 01       		.uleb128 0x1
+ 2216 012a 13       		.uleb128 0x13
+ 2217 012b 00       		.byte	0
+ 2218 012c 00       		.byte	0
+ 2219 012d 14       		.uleb128 0x14
+ 2220 012e 8A8201   		.uleb128 0x410a
+ 2221 0131 00       		.byte	0
+ 2222 0132 02       		.uleb128 0x2
+ 2223 0133 18       		.uleb128 0x18
+ 2224 0134 9142     		.uleb128 0x2111
+ 2225 0136 18       		.uleb128 0x18
+ 2226 0137 00       		.byte	0
+ 2227 0138 00       		.byte	0
+ 2228 0139 15       		.uleb128 0x15
+ 2229 013a 898201   		.uleb128 0x4109
+ 2230 013d 00       		.byte	0
+ 2231 013e 11       		.uleb128 0x11
+ 2232 013f 01       		.uleb128 0x1
+ 2233 0140 31       		.uleb128 0x31
+ 2234 0141 13       		.uleb128 0x13
+ 2235 0142 00       		.byte	0
+ 2236 0143 00       		.byte	0
+ 2237 0144 16       		.uleb128 0x16
+ 2238 0145 26       		.uleb128 0x26
+ 2239 0146 00       		.byte	0
+ 2240 0147 49       		.uleb128 0x49
+ 2241 0148 13       		.uleb128 0x13
+ 2242 0149 00       		.byte	0
+ 2243 014a 00       		.byte	0
+ 2244 014b 17       		.uleb128 0x17
+ 2245 014c 2E       		.uleb128 0x2e
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 50
+
+
+ 2246 014d 01       		.byte	0x1
+ 2247 014e 3F       		.uleb128 0x3f
+ 2248 014f 19       		.uleb128 0x19
+ 2249 0150 03       		.uleb128 0x3
+ 2250 0151 0E       		.uleb128 0xe
+ 2251 0152 3A       		.uleb128 0x3a
+ 2252 0153 0B       		.uleb128 0xb
+ 2253 0154 3B       		.uleb128 0x3b
+ 2254 0155 05       		.uleb128 0x5
+ 2255 0156 27       		.uleb128 0x27
+ 2256 0157 19       		.uleb128 0x19
+ 2257 0158 11       		.uleb128 0x11
+ 2258 0159 01       		.uleb128 0x1
+ 2259 015a 12       		.uleb128 0x12
+ 2260 015b 06       		.uleb128 0x6
+ 2261 015c 40       		.uleb128 0x40
+ 2262 015d 18       		.uleb128 0x18
+ 2263 015e 9642     		.uleb128 0x2116
+ 2264 0160 19       		.uleb128 0x19
+ 2265 0161 01       		.uleb128 0x1
+ 2266 0162 13       		.uleb128 0x13
+ 2267 0163 00       		.byte	0
+ 2268 0164 00       		.byte	0
+ 2269 0165 18       		.uleb128 0x18
+ 2270 0166 34       		.uleb128 0x34
+ 2271 0167 00       		.byte	0
+ 2272 0168 03       		.uleb128 0x3
+ 2273 0169 0E       		.uleb128 0xe
+ 2274 016a 3A       		.uleb128 0x3a
+ 2275 016b 0B       		.uleb128 0xb
+ 2276 016c 3B       		.uleb128 0x3b
+ 2277 016d 05       		.uleb128 0x5
+ 2278 016e 49       		.uleb128 0x49
+ 2279 016f 13       		.uleb128 0x13
+ 2280 0170 02       		.uleb128 0x2
+ 2281 0171 17       		.uleb128 0x17
+ 2282 0172 00       		.byte	0
+ 2283 0173 00       		.byte	0
+ 2284 0174 19       		.uleb128 0x19
+ 2285 0175 2E       		.uleb128 0x2e
+ 2286 0176 01       		.byte	0x1
+ 2287 0177 03       		.uleb128 0x3
+ 2288 0178 0E       		.uleb128 0xe
+ 2289 0179 3A       		.uleb128 0x3a
+ 2290 017a 0B       		.uleb128 0xb
+ 2291 017b 3B       		.uleb128 0x3b
+ 2292 017c 05       		.uleb128 0x5
+ 2293 017d 27       		.uleb128 0x27
+ 2294 017e 19       		.uleb128 0x19
+ 2295 017f 49       		.uleb128 0x49
+ 2296 0180 13       		.uleb128 0x13
+ 2297 0181 11       		.uleb128 0x11
+ 2298 0182 01       		.uleb128 0x1
+ 2299 0183 12       		.uleb128 0x12
+ 2300 0184 06       		.uleb128 0x6
+ 2301 0185 40       		.uleb128 0x40
+ 2302 0186 18       		.uleb128 0x18
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 51
+
+
+ 2303 0187 9642     		.uleb128 0x2116
+ 2304 0189 19       		.uleb128 0x19
+ 2305 018a 01       		.uleb128 0x1
+ 2306 018b 13       		.uleb128 0x13
+ 2307 018c 00       		.byte	0
+ 2308 018d 00       		.byte	0
+ 2309 018e 1A       		.uleb128 0x1a
+ 2310 018f 34       		.uleb128 0x34
+ 2311 0190 00       		.byte	0
+ 2312 0191 03       		.uleb128 0x3
+ 2313 0192 0E       		.uleb128 0xe
+ 2314 0193 3A       		.uleb128 0x3a
+ 2315 0194 0B       		.uleb128 0xb
+ 2316 0195 3B       		.uleb128 0x3b
+ 2317 0196 05       		.uleb128 0x5
+ 2318 0197 49       		.uleb128 0x49
+ 2319 0198 13       		.uleb128 0x13
+ 2320 0199 02       		.uleb128 0x2
+ 2321 019a 18       		.uleb128 0x18
+ 2322 019b 00       		.byte	0
+ 2323 019c 00       		.byte	0
+ 2324 019d 1B       		.uleb128 0x1b
+ 2325 019e 898201   		.uleb128 0x4109
+ 2326 01a1 01       		.byte	0x1
+ 2327 01a2 11       		.uleb128 0x11
+ 2328 01a3 01       		.uleb128 0x1
+ 2329 01a4 31       		.uleb128 0x31
+ 2330 01a5 13       		.uleb128 0x13
+ 2331 01a6 00       		.byte	0
+ 2332 01a7 00       		.byte	0
+ 2333 01a8 1C       		.uleb128 0x1c
+ 2334 01a9 2E       		.uleb128 0x2e
+ 2335 01aa 01       		.byte	0x1
+ 2336 01ab 3F       		.uleb128 0x3f
+ 2337 01ac 19       		.uleb128 0x19
+ 2338 01ad 03       		.uleb128 0x3
+ 2339 01ae 0E       		.uleb128 0xe
+ 2340 01af 3A       		.uleb128 0x3a
+ 2341 01b0 0B       		.uleb128 0xb
+ 2342 01b1 3B       		.uleb128 0x3b
+ 2343 01b2 0B       		.uleb128 0xb
+ 2344 01b3 27       		.uleb128 0x27
+ 2345 01b4 19       		.uleb128 0x19
+ 2346 01b5 11       		.uleb128 0x11
+ 2347 01b6 01       		.uleb128 0x1
+ 2348 01b7 12       		.uleb128 0x12
+ 2349 01b8 06       		.uleb128 0x6
+ 2350 01b9 40       		.uleb128 0x40
+ 2351 01ba 18       		.uleb128 0x18
+ 2352 01bb 9742     		.uleb128 0x2117
+ 2353 01bd 19       		.uleb128 0x19
+ 2354 01be 01       		.uleb128 0x1
+ 2355 01bf 13       		.uleb128 0x13
+ 2356 01c0 00       		.byte	0
+ 2357 01c1 00       		.byte	0
+ 2358 01c2 1D       		.uleb128 0x1d
+ 2359 01c3 34       		.uleb128 0x34
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 52
+
+
+ 2360 01c4 00       		.byte	0
+ 2361 01c5 03       		.uleb128 0x3
+ 2362 01c6 08       		.uleb128 0x8
+ 2363 01c7 3A       		.uleb128 0x3a
+ 2364 01c8 0B       		.uleb128 0xb
+ 2365 01c9 3B       		.uleb128 0x3b
+ 2366 01ca 0B       		.uleb128 0xb
+ 2367 01cb 49       		.uleb128 0x49
+ 2368 01cc 13       		.uleb128 0x13
+ 2369 01cd 3F       		.uleb128 0x3f
+ 2370 01ce 19       		.uleb128 0x19
+ 2371 01cf 3C       		.uleb128 0x3c
+ 2372 01d0 19       		.uleb128 0x19
+ 2373 01d1 00       		.byte	0
+ 2374 01d2 00       		.byte	0
+ 2375 01d3 1E       		.uleb128 0x1e
+ 2376 01d4 2E       		.uleb128 0x2e
+ 2377 01d5 00       		.byte	0
+ 2378 01d6 3F       		.uleb128 0x3f
+ 2379 01d7 19       		.uleb128 0x19
+ 2380 01d8 3C       		.uleb128 0x3c
+ 2381 01d9 19       		.uleb128 0x19
+ 2382 01da 6E       		.uleb128 0x6e
+ 2383 01db 0E       		.uleb128 0xe
+ 2384 01dc 03       		.uleb128 0x3
+ 2385 01dd 0E       		.uleb128 0xe
+ 2386 01de 00       		.byte	0
+ 2387 01df 00       		.byte	0
+ 2388 01e0 1F       		.uleb128 0x1f
+ 2389 01e1 2E       		.uleb128 0x2e
+ 2390 01e2 00       		.byte	0
+ 2391 01e3 3F       		.uleb128 0x3f
+ 2392 01e4 19       		.uleb128 0x19
+ 2393 01e5 3C       		.uleb128 0x3c
+ 2394 01e6 19       		.uleb128 0x19
+ 2395 01e7 6E       		.uleb128 0x6e
+ 2396 01e8 0E       		.uleb128 0xe
+ 2397 01e9 03       		.uleb128 0x3
+ 2398 01ea 0E       		.uleb128 0xe
+ 2399 01eb 3A       		.uleb128 0x3a
+ 2400 01ec 0B       		.uleb128 0xb
+ 2401 01ed 3B       		.uleb128 0x3b
+ 2402 01ee 0B       		.uleb128 0xb
+ 2403 01ef 00       		.byte	0
+ 2404 01f0 00       		.byte	0
+ 2405 01f1 00       		.byte	0
+ 2406              		.section	.debug_loc,"",%progbits
+ 2407              	.Ldebug_loc0:
+ 2408              	.LLST0:
+ 2409 0000 00000000 		.4byte	.LVL0
+ 2410 0004 10000000 		.4byte	.LVL2
+ 2411 0008 0100     		.2byte	0x1
+ 2412 000a 50       		.byte	0x50
+ 2413 000b 10000000 		.4byte	.LVL2
+ 2414 000f 84000000 		.4byte	.LFE4
+ 2415 0013 0100     		.2byte	0x1
+ 2416 0015 5B       		.byte	0x5b
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 53
+
+
+ 2417 0016 00000000 		.4byte	0
+ 2418 001a 00000000 		.4byte	0
+ 2419              	.LLST1:
+ 2420 001e 00000000 		.4byte	.LVL0
+ 2421 0022 10000000 		.4byte	.LVL2
+ 2422 0026 0100     		.2byte	0x1
+ 2423 0028 51       		.byte	0x51
+ 2424 0029 10000000 		.4byte	.LVL2
+ 2425 002d 84000000 		.4byte	.LFE4
+ 2426 0031 0100     		.2byte	0x1
+ 2427 0033 58       		.byte	0x58
+ 2428 0034 00000000 		.4byte	0
+ 2429 0038 00000000 		.4byte	0
+ 2430              	.LLST2:
+ 2431 003c 08000000 		.4byte	.LVL1
+ 2432 0040 10000000 		.4byte	.LVL2
+ 2433 0044 0200     		.2byte	0x2
+ 2434 0046 30       		.byte	0x30
+ 2435 0047 9F       		.byte	0x9f
+ 2436 0048 10000000 		.4byte	.LVL2
+ 2437 004c 38000000 		.4byte	.LVL7
+ 2438 0050 0100     		.2byte	0x1
+ 2439 0052 59       		.byte	0x59
+ 2440 0053 78000000 		.4byte	.LVL18
+ 2441 0057 84000000 		.4byte	.LFE4
+ 2442 005b 0100     		.2byte	0x1
+ 2443 005d 59       		.byte	0x59
+ 2444 005e 00000000 		.4byte	0
+ 2445 0062 00000000 		.4byte	0
+ 2446              	.LLST3:
+ 2447 0066 08000000 		.4byte	.LVL1
+ 2448 006a 10000000 		.4byte	.LVL2
+ 2449 006e 0200     		.2byte	0x2
+ 2450 0070 30       		.byte	0x30
+ 2451 0071 9F       		.byte	0x9f
+ 2452 0072 3C000000 		.4byte	.LVL8
+ 2453 0076 42000000 		.4byte	.LVL9
+ 2454 007a 0100     		.2byte	0x1
+ 2455 007c 59       		.byte	0x59
+ 2456 007d 42000000 		.4byte	.LVL9
+ 2457 0081 60000000 		.4byte	.LVL14
+ 2458 0085 0100     		.2byte	0x1
+ 2459 0087 54       		.byte	0x54
+ 2460 0088 62000000 		.4byte	.LVL15
+ 2461 008c 78000000 		.4byte	.LVL18
+ 2462 0090 0100     		.2byte	0x1
+ 2463 0092 54       		.byte	0x54
+ 2464 0093 00000000 		.4byte	0
+ 2465 0097 00000000 		.4byte	0
+ 2466              	.LLST4:
+ 2467 009b 08000000 		.4byte	.LVL1
+ 2468 009f 10000000 		.4byte	.LVL2
+ 2469 00a3 0600     		.2byte	0x6
+ 2470 00a5 9E       		.byte	0x9e
+ 2471 00a6 04       		.uleb128 0x4
+ 2472 00a7 00000000 		.4byte	0
+ 2473 00ab 10000000 		.4byte	.LVL2
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 54
+
+
+ 2474 00af 34000000 		.4byte	.LVL6
+ 2475 00b3 0100     		.2byte	0x1
+ 2476 00b5 54       		.byte	0x54
+ 2477 00b6 34000000 		.4byte	.LVL6
+ 2478 00ba 42000000 		.4byte	.LVL9
+ 2479 00be 0100     		.2byte	0x1
+ 2480 00c0 50       		.byte	0x50
+ 2481 00c1 42000000 		.4byte	.LVL9
+ 2482 00c5 78000000 		.4byte	.LVL18
+ 2483 00c9 0100     		.2byte	0x1
+ 2484 00cb 5A       		.byte	0x5a
+ 2485 00cc 78000000 		.4byte	.LVL18
+ 2486 00d0 84000000 		.4byte	.LFE4
+ 2487 00d4 0100     		.2byte	0x1
+ 2488 00d6 54       		.byte	0x54
+ 2489 00d7 00000000 		.4byte	0
+ 2490 00db 00000000 		.4byte	0
+ 2491              	.LLST5:
+ 2492 00df 08000000 		.4byte	.LVL1
+ 2493 00e3 42000000 		.4byte	.LVL9
+ 2494 00e7 0600     		.2byte	0x6
+ 2495 00e9 9E       		.byte	0x9e
+ 2496 00ea 04       		.uleb128 0x4
+ 2497 00eb 00000000 		.4byte	0
+ 2498 00ef 42000000 		.4byte	.LVL9
+ 2499 00f3 5E000000 		.4byte	.LVL13
+ 2500 00f7 0100     		.2byte	0x1
+ 2501 00f9 55       		.byte	0x55
+ 2502 00fa 5E000000 		.4byte	.LVL13
+ 2503 00fe 62000000 		.4byte	.LVL15
+ 2504 0102 0100     		.2byte	0x1
+ 2505 0104 50       		.byte	0x50
+ 2506 0105 62000000 		.4byte	.LVL15
+ 2507 0109 78000000 		.4byte	.LVL18
+ 2508 010d 0100     		.2byte	0x1
+ 2509 010f 55       		.byte	0x55
+ 2510 0110 78000000 		.4byte	.LVL18
+ 2511 0114 84000000 		.4byte	.LFE4
+ 2512 0118 0600     		.2byte	0x6
+ 2513 011a 9E       		.byte	0x9e
+ 2514 011b 04       		.uleb128 0x4
+ 2515 011c 00000000 		.4byte	0
+ 2516 0120 00000000 		.4byte	0
+ 2517 0124 00000000 		.4byte	0
+ 2518              	.LLST6:
+ 2519 0128 00000000 		.4byte	.LVL19
+ 2520 012c 10000000 		.4byte	.LVL21
+ 2521 0130 0100     		.2byte	0x1
+ 2522 0132 50       		.byte	0x50
+ 2523 0133 10000000 		.4byte	.LVL21
+ 2524 0137 52000000 		.4byte	.LFE6
+ 2525 013b 0100     		.2byte	0x1
+ 2526 013d 5A       		.byte	0x5a
+ 2527 013e 00000000 		.4byte	0
+ 2528 0142 00000000 		.4byte	0
+ 2529              	.LLST7:
+ 2530 0146 00000000 		.4byte	.LVL19
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 55
+
+
+ 2531 014a 10000000 		.4byte	.LVL21
+ 2532 014e 0100     		.2byte	0x1
+ 2533 0150 51       		.byte	0x51
+ 2534 0151 10000000 		.4byte	.LVL21
+ 2535 0155 52000000 		.4byte	.LFE6
+ 2536 0159 0100     		.2byte	0x1
+ 2537 015b 59       		.byte	0x59
+ 2538 015c 00000000 		.4byte	0
+ 2539 0160 00000000 		.4byte	0
+ 2540              	.LLST8:
+ 2541 0164 00000000 		.4byte	.LVL19
+ 2542 0168 10000000 		.4byte	.LVL21
+ 2543 016c 0100     		.2byte	0x1
+ 2544 016e 52       		.byte	0x52
+ 2545 016f 10000000 		.4byte	.LVL21
+ 2546 0173 52000000 		.4byte	.LFE6
+ 2547 0177 0100     		.2byte	0x1
+ 2548 0179 56       		.byte	0x56
+ 2549 017a 00000000 		.4byte	0
+ 2550 017e 00000000 		.4byte	0
+ 2551              	.LLST9:
+ 2552 0182 00000000 		.4byte	.LVL19
+ 2553 0186 10000000 		.4byte	.LVL21
+ 2554 018a 0100     		.2byte	0x1
+ 2555 018c 53       		.byte	0x53
+ 2556 018d 10000000 		.4byte	.LVL21
+ 2557 0191 52000000 		.4byte	.LFE6
+ 2558 0195 0100     		.2byte	0x1
+ 2559 0197 58       		.byte	0x58
+ 2560 0198 00000000 		.4byte	0
+ 2561 019c 00000000 		.4byte	0
+ 2562              	.LLST10:
+ 2563 01a0 0C000000 		.4byte	.LVL20
+ 2564 01a4 10000000 		.4byte	.LVL21
+ 2565 01a8 0200     		.2byte	0x2
+ 2566 01aa 30       		.byte	0x30
+ 2567 01ab 9F       		.byte	0x9f
+ 2568 01ac 10000000 		.4byte	.LVL21
+ 2569 01b0 48000000 		.4byte	.LVL29
+ 2570 01b4 0100     		.2byte	0x1
+ 2571 01b6 55       		.byte	0x55
+ 2572 01b7 4A000000 		.4byte	.LVL30
+ 2573 01bb 52000000 		.4byte	.LFE6
+ 2574 01bf 0100     		.2byte	0x1
+ 2575 01c1 55       		.byte	0x55
+ 2576 01c2 00000000 		.4byte	0
+ 2577 01c6 00000000 		.4byte	0
+ 2578              	.LLST11:
+ 2579 01ca 0C000000 		.4byte	.LVL20
+ 2580 01ce 10000000 		.4byte	.LVL21
+ 2581 01d2 0200     		.2byte	0x2
+ 2582 01d4 30       		.byte	0x30
+ 2583 01d5 9F       		.byte	0x9f
+ 2584 01d6 10000000 		.4byte	.LVL21
+ 2585 01da 3C000000 		.4byte	.LVL25
+ 2586 01de 0100     		.2byte	0x1
+ 2587 01e0 54       		.byte	0x54
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 56
+
+
+ 2588 01e1 3E000000 		.4byte	.LVL26
+ 2589 01e5 40000000 		.4byte	.LVL27
+ 2590 01e9 0100     		.2byte	0x1
+ 2591 01eb 54       		.byte	0x54
+ 2592 01ec 42000000 		.4byte	.LVL28
+ 2593 01f0 4A000000 		.4byte	.LVL30
+ 2594 01f4 0100     		.2byte	0x1
+ 2595 01f6 54       		.byte	0x54
+ 2596 01f7 00000000 		.4byte	0
+ 2597 01fb 00000000 		.4byte	0
+ 2598              	.LLST12:
+ 2599 01ff 00000000 		.4byte	.LVL31
+ 2600 0203 0C000000 		.4byte	.LVL33
+ 2601 0207 0100     		.2byte	0x1
+ 2602 0209 50       		.byte	0x50
+ 2603 020a 0C000000 		.4byte	.LVL33
+ 2604 020e 2E000000 		.4byte	.LFE3
+ 2605 0212 0100     		.2byte	0x1
+ 2606 0214 57       		.byte	0x57
+ 2607 0215 00000000 		.4byte	0
+ 2608 0219 00000000 		.4byte	0
+ 2609              	.LLST13:
+ 2610 021d 00000000 		.4byte	.LVL31
+ 2611 0221 0C000000 		.4byte	.LVL33
+ 2612 0225 0100     		.2byte	0x1
+ 2613 0227 51       		.byte	0x51
+ 2614 0228 0C000000 		.4byte	.LVL33
+ 2615 022c 2E000000 		.4byte	.LFE3
+ 2616 0230 0100     		.2byte	0x1
+ 2617 0232 56       		.byte	0x56
+ 2618 0233 00000000 		.4byte	0
+ 2619 0237 00000000 		.4byte	0
+ 2620              	.LLST14:
+ 2621 023b 06000000 		.4byte	.LVL32
+ 2622 023f 0C000000 		.4byte	.LVL33
+ 2623 0243 0200     		.2byte	0x2
+ 2624 0245 30       		.byte	0x30
+ 2625 0246 9F       		.byte	0x9f
+ 2626 0247 0C000000 		.4byte	.LVL33
+ 2627 024b 24000000 		.4byte	.LVL37
+ 2628 024f 0100     		.2byte	0x1
+ 2629 0251 54       		.byte	0x54
+ 2630 0252 26000000 		.4byte	.LVL38
+ 2631 0256 2E000000 		.4byte	.LFE3
+ 2632 025a 0100     		.2byte	0x1
+ 2633 025c 54       		.byte	0x54
+ 2634 025d 00000000 		.4byte	0
+ 2635 0261 00000000 		.4byte	0
+ 2636              	.LLST15:
+ 2637 0265 06000000 		.4byte	.LVL32
+ 2638 0269 0C000000 		.4byte	.LVL33
+ 2639 026d 0600     		.2byte	0x6
+ 2640 026f 9E       		.byte	0x9e
+ 2641 0270 04       		.uleb128 0x4
+ 2642 0271 00000000 		.4byte	0
+ 2643 0275 0C000000 		.4byte	.LVL33
+ 2644 0279 22000000 		.4byte	.LVL36
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 57
+
+
+ 2645 027d 0100     		.2byte	0x1
+ 2646 027f 55       		.byte	0x55
+ 2647 0280 22000000 		.4byte	.LVL36
+ 2648 0284 26000000 		.4byte	.LVL38
+ 2649 0288 0100     		.2byte	0x1
+ 2650 028a 50       		.byte	0x50
+ 2651 028b 26000000 		.4byte	.LVL38
+ 2652 028f 2E000000 		.4byte	.LFE3
+ 2653 0293 0100     		.2byte	0x1
+ 2654 0295 55       		.byte	0x55
+ 2655 0296 00000000 		.4byte	0
+ 2656 029a 00000000 		.4byte	0
+ 2657              	.LLST16:
+ 2658 029e 00000000 		.4byte	.LVL39
+ 2659 02a2 14000000 		.4byte	.LVL43
+ 2660 02a6 0100     		.2byte	0x1
+ 2661 02a8 50       		.byte	0x50
+ 2662 02a9 14000000 		.4byte	.LVL43
+ 2663 02ad A8000000 		.4byte	.LFE2
+ 2664 02b1 0100     		.2byte	0x1
+ 2665 02b3 55       		.byte	0x55
+ 2666 02b4 00000000 		.4byte	0
+ 2667 02b8 00000000 		.4byte	0
+ 2668              	.LLST17:
+ 2669 02bc 00000000 		.4byte	.LVL39
+ 2670 02c0 12000000 		.4byte	.LVL42
+ 2671 02c4 0100     		.2byte	0x1
+ 2672 02c6 51       		.byte	0x51
+ 2673 02c7 12000000 		.4byte	.LVL42
+ 2674 02cb A8000000 		.4byte	.LFE2
+ 2675 02cf 0100     		.2byte	0x1
+ 2676 02d1 56       		.byte	0x56
+ 2677 02d2 00000000 		.4byte	0
+ 2678 02d6 00000000 		.4byte	0
+ 2679              	.LLST18:
+ 2680 02da 00000000 		.4byte	.LVL39
+ 2681 02de 10000000 		.4byte	.LVL41
+ 2682 02e2 0100     		.2byte	0x1
+ 2683 02e4 52       		.byte	0x52
+ 2684 02e5 10000000 		.4byte	.LVL41
+ 2685 02e9 A8000000 		.4byte	.LFE2
+ 2686 02ed 0100     		.2byte	0x1
+ 2687 02ef 59       		.byte	0x59
+ 2688 02f0 00000000 		.4byte	0
+ 2689 02f4 00000000 		.4byte	0
+ 2690              	.LLST19:
+ 2691 02f8 00000000 		.4byte	.LVL39
+ 2692 02fc 17000000 		.4byte	.LVL44-1
+ 2693 0300 0100     		.2byte	0x1
+ 2694 0302 53       		.byte	0x53
+ 2695 0303 17000000 		.4byte	.LVL44-1
+ 2696 0307 A8000000 		.4byte	.LFE2
+ 2697 030b 0400     		.2byte	0x4
+ 2698 030d F3       		.byte	0xf3
+ 2699 030e 01       		.uleb128 0x1
+ 2700 030f 53       		.byte	0x53
+ 2701 0310 9F       		.byte	0x9f
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 58
+
+
+ 2702 0311 00000000 		.4byte	0
+ 2703 0315 00000000 		.4byte	0
+ 2704              	.LLST20:
+ 2705 0319 0E000000 		.4byte	.LVL40
+ 2706 031d 1C000000 		.4byte	.LVL45
+ 2707 0321 0200     		.2byte	0x2
+ 2708 0323 30       		.byte	0x30
+ 2709 0324 9F       		.byte	0x9f
+ 2710 0325 1C000000 		.4byte	.LVL45
+ 2711 0329 9C000000 		.4byte	.LVL65
+ 2712 032d 0100     		.2byte	0x1
+ 2713 032f 57       		.byte	0x57
+ 2714 0330 9E000000 		.4byte	.LVL66
+ 2715 0334 A8000000 		.4byte	.LFE2
+ 2716 0338 0100     		.2byte	0x1
+ 2717 033a 57       		.byte	0x57
+ 2718 033b 00000000 		.4byte	0
+ 2719 033f 00000000 		.4byte	0
+ 2720              	.LLST21:
+ 2721 0343 0E000000 		.4byte	.LVL40
+ 2722 0347 1C000000 		.4byte	.LVL45
+ 2723 034b 0200     		.2byte	0x2
+ 2724 034d 30       		.byte	0x30
+ 2725 034e 9F       		.byte	0x9f
+ 2726 034f 22000000 		.4byte	.LVL46
+ 2727 0353 38000000 		.4byte	.LVL48
+ 2728 0357 0100     		.2byte	0x1
+ 2729 0359 54       		.byte	0x54
+ 2730 035a 3A000000 		.4byte	.LVL49
+ 2731 035e 3C000000 		.4byte	.LVL50
+ 2732 0362 0100     		.2byte	0x1
+ 2733 0364 54       		.byte	0x54
+ 2734 0365 3E000000 		.4byte	.LVL51
+ 2735 0369 5A000000 		.4byte	.LVL53
+ 2736 036d 0100     		.2byte	0x1
+ 2737 036f 54       		.byte	0x54
+ 2738 0370 5C000000 		.4byte	.LVL54
+ 2739 0374 6A000000 		.4byte	.LVL56
+ 2740 0378 0100     		.2byte	0x1
+ 2741 037a 54       		.byte	0x54
+ 2742 037b 7A000000 		.4byte	.LVL60
+ 2743 037f 7E000000 		.4byte	.LVL61
+ 2744 0383 0200     		.2byte	0x2
+ 2745 0385 30       		.byte	0x30
+ 2746 0386 9F       		.byte	0x9f
+ 2747 0387 7E000000 		.4byte	.LVL61
+ 2748 038b 94000000 		.4byte	.LVL63
+ 2749 038f 0100     		.2byte	0x1
+ 2750 0391 54       		.byte	0x54
+ 2751 0392 96000000 		.4byte	.LVL64
+ 2752 0396 9E000000 		.4byte	.LVL66
+ 2753 039a 0100     		.2byte	0x1
+ 2754 039c 54       		.byte	0x54
+ 2755 039d 00000000 		.4byte	0
+ 2756 03a1 00000000 		.4byte	0
+ 2757              	.LLST22:
+ 2758 03a5 0E000000 		.4byte	.LVL40
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 59
+
+
+ 2759 03a9 1C000000 		.4byte	.LVL45
+ 2760 03ad 0600     		.2byte	0x6
+ 2761 03af 9E       		.byte	0x9e
+ 2762 03b0 04       		.uleb128 0x4
+ 2763 03b1 00000000 		.4byte	0
+ 2764 03b5 7A000000 		.4byte	.LVL60
+ 2765 03b9 7E000000 		.4byte	.LVL61
+ 2766 03bd 0100     		.2byte	0x1
+ 2767 03bf 50       		.byte	0x50
+ 2768 03c0 7E000000 		.4byte	.LVL61
+ 2769 03c4 9E000000 		.4byte	.LVL66
+ 2770 03c8 0100     		.2byte	0x1
+ 2771 03ca 5A       		.byte	0x5a
+ 2772 03cb 00000000 		.4byte	0
+ 2773 03cf 00000000 		.4byte	0
+ 2774              	.LLST23:
+ 2775 03d3 00000000 		.4byte	.LVL67
+ 2776 03d7 0E000000 		.4byte	.LVL70
+ 2777 03db 0100     		.2byte	0x1
+ 2778 03dd 50       		.byte	0x50
+ 2779 03de 0E000000 		.4byte	.LVL70
+ 2780 03e2 08010000 		.4byte	.LFE7
+ 2781 03e6 0200     		.2byte	0x2
+ 2782 03e8 91       		.byte	0x91
+ 2783 03e9 50       		.sleb128 -48
+ 2784 03ea 00000000 		.4byte	0
+ 2785 03ee 00000000 		.4byte	0
+ 2786              	.LLST24:
+ 2787 03f2 00000000 		.4byte	.LVL67
+ 2788 03f6 0C000000 		.4byte	.LVL69
+ 2789 03fa 0100     		.2byte	0x1
+ 2790 03fc 51       		.byte	0x51
+ 2791 03fd 0C000000 		.4byte	.LVL69
+ 2792 0401 08010000 		.4byte	.LFE7
+ 2793 0405 0100     		.2byte	0x1
+ 2794 0407 56       		.byte	0x56
+ 2795 0408 00000000 		.4byte	0
+ 2796 040c 00000000 		.4byte	0
+ 2797              	.LLST25:
+ 2798 0410 0A000000 		.4byte	.LVL68
+ 2799 0414 0E000000 		.4byte	.LVL70
+ 2800 0418 0200     		.2byte	0x2
+ 2801 041a 30       		.byte	0x30
+ 2802 041b 9F       		.byte	0x9f
+ 2803 041c 0E000000 		.4byte	.LVL70
+ 2804 0420 38000000 		.4byte	.LVL75
+ 2805 0424 0100     		.2byte	0x1
+ 2806 0426 51       		.byte	0x51
+ 2807 0427 3A000000 		.4byte	.LVL76
+ 2808 042b 44000000 		.4byte	.LVL77
+ 2809 042f 0100     		.2byte	0x1
+ 2810 0431 51       		.byte	0x51
+ 2811 0432 44000000 		.4byte	.LVL77
+ 2812 0436 08010000 		.4byte	.LFE7
+ 2813 043a 0200     		.2byte	0x2
+ 2814 043c 91       		.byte	0x91
+ 2815 043d 4C       		.sleb128 -52
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 60
+
+
+ 2816 043e 00000000 		.4byte	0
+ 2817 0442 00000000 		.4byte	0
+ 2818              	.LLST26:
+ 2819 0446 0E000000 		.4byte	.LVL70
+ 2820 044a 2C000000 		.4byte	.LVL71
+ 2821 044e 0100     		.2byte	0x1
+ 2822 0450 53       		.byte	0x53
+ 2823 0451 2E000000 		.4byte	.LVL72
+ 2824 0455 30000000 		.4byte	.LVL73
+ 2825 0459 0100     		.2byte	0x1
+ 2826 045b 53       		.byte	0x53
+ 2827 045c 32000000 		.4byte	.LVL74
+ 2828 0460 3A000000 		.4byte	.LVL76
+ 2829 0464 0100     		.2byte	0x1
+ 2830 0466 53       		.byte	0x53
+ 2831 0467 56000000 		.4byte	.LVL78
+ 2832 046b 5A000000 		.4byte	.LVL79
+ 2833 046f 0200     		.2byte	0x2
+ 2834 0471 30       		.byte	0x30
+ 2835 0472 9F       		.byte	0x9f
+ 2836 0473 5A000000 		.4byte	.LVL79
+ 2837 0477 7C000000 		.4byte	.LVL82
+ 2838 047b 0100     		.2byte	0x1
+ 2839 047d 54       		.byte	0x54
+ 2840 047e 7E000000 		.4byte	.LVL83
+ 2841 0482 A2000000 		.4byte	.LVL85
+ 2842 0486 0100     		.2byte	0x1
+ 2843 0488 54       		.byte	0x54
+ 2844 0489 A2000000 		.4byte	.LVL85
+ 2845 048d A6000000 		.4byte	.LVL86
+ 2846 0491 0200     		.2byte	0x2
+ 2847 0493 30       		.byte	0x30
+ 2848 0494 9F       		.byte	0x9f
+ 2849 0495 A6000000 		.4byte	.LVL86
+ 2850 0499 E0000000 		.4byte	.LVL91
+ 2851 049d 0100     		.2byte	0x1
+ 2852 049f 54       		.byte	0x54
+ 2853 04a0 E2000000 		.4byte	.LVL92
+ 2854 04a4 FC000000 		.4byte	.LVL95
+ 2855 04a8 0100     		.2byte	0x1
+ 2856 04aa 54       		.byte	0x54
+ 2857 04ab 00000000 		.4byte	0
+ 2858 04af 00000000 		.4byte	0
+ 2859              	.LLST27:
+ 2860 04b3 88000000 		.4byte	.LVL84
+ 2861 04b7 FC000000 		.4byte	.LVL95
+ 2862 04bb 0200     		.2byte	0x2
+ 2863 04bd 7D       		.byte	0x7d
+ 2864 04be 00       		.sleb128 0
+ 2865 04bf 00000000 		.4byte	0
+ 2866 04c3 00000000 		.4byte	0
+ 2867              	.LLST28:
+ 2868 04c7 56000000 		.4byte	.LVL78
+ 2869 04cb 88000000 		.4byte	.LVL84
+ 2870 04cf 0100     		.2byte	0x1
+ 2871 04d1 57       		.byte	0x57
+ 2872 04d2 A2000000 		.4byte	.LVL85
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 61
+
+
+ 2873 04d6 E6000000 		.4byte	.LVL93
+ 2874 04da 0100     		.2byte	0x1
+ 2875 04dc 58       		.byte	0x58
+ 2876 04dd 00000000 		.4byte	0
+ 2877 04e1 00000000 		.4byte	0
+ 2878              	.LLST29:
+ 2879 04e5 00000000 		.4byte	.LVL96
+ 2880 04e9 14000000 		.4byte	.LVL100
+ 2881 04ed 0100     		.2byte	0x1
+ 2882 04ef 50       		.byte	0x50
+ 2883 04f0 14000000 		.4byte	.LVL100
+ 2884 04f4 1C010000 		.4byte	.LVL138
+ 2885 04f8 0100     		.2byte	0x1
+ 2886 04fa 57       		.byte	0x57
+ 2887 04fb 1C010000 		.4byte	.LVL138
+ 2888 04ff 24010000 		.4byte	.LFE5
+ 2889 0503 0400     		.2byte	0x4
+ 2890 0505 F3       		.byte	0xf3
+ 2891 0506 01       		.uleb128 0x1
+ 2892 0507 50       		.byte	0x50
+ 2893 0508 9F       		.byte	0x9f
+ 2894 0509 00000000 		.4byte	0
+ 2895 050d 00000000 		.4byte	0
+ 2896              	.LLST30:
+ 2897 0511 00000000 		.4byte	.LVL96
+ 2898 0515 12000000 		.4byte	.LVL99
+ 2899 0519 0100     		.2byte	0x1
+ 2900 051b 51       		.byte	0x51
+ 2901 051c 12000000 		.4byte	.LVL99
+ 2902 0520 1C010000 		.4byte	.LVL138
+ 2903 0524 0100     		.2byte	0x1
+ 2904 0526 56       		.byte	0x56
+ 2905 0527 1C010000 		.4byte	.LVL138
+ 2906 052b 24010000 		.4byte	.LFE5
+ 2907 052f 0400     		.2byte	0x4
+ 2908 0531 F3       		.byte	0xf3
+ 2909 0532 01       		.uleb128 0x1
+ 2910 0533 51       		.byte	0x51
+ 2911 0534 9F       		.byte	0x9f
+ 2912 0535 00000000 		.4byte	0
+ 2913 0539 00000000 		.4byte	0
+ 2914              	.LLST31:
+ 2915 053d 00000000 		.4byte	.LVL96
+ 2916 0541 10000000 		.4byte	.LVL98
+ 2917 0545 0100     		.2byte	0x1
+ 2918 0547 52       		.byte	0x52
+ 2919 0548 10000000 		.4byte	.LVL98
+ 2920 054c 1C010000 		.4byte	.LVL138
+ 2921 0550 0100     		.2byte	0x1
+ 2922 0552 5A       		.byte	0x5a
+ 2923 0553 1C010000 		.4byte	.LVL138
+ 2924 0557 24010000 		.4byte	.LFE5
+ 2925 055b 0400     		.2byte	0x4
+ 2926 055d F3       		.byte	0xf3
+ 2927 055e 01       		.uleb128 0x1
+ 2928 055f 52       		.byte	0x52
+ 2929 0560 9F       		.byte	0x9f
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 62
+
+
+ 2930 0561 00000000 		.4byte	0
+ 2931 0565 00000000 		.4byte	0
+ 2932              	.LLST32:
+ 2933 0569 00000000 		.4byte	.LVL96
+ 2934 056d 17000000 		.4byte	.LVL101-1
+ 2935 0571 0100     		.2byte	0x1
+ 2936 0573 53       		.byte	0x53
+ 2937 0574 17000000 		.4byte	.LVL101-1
+ 2938 0578 24010000 		.4byte	.LFE5
+ 2939 057c 0400     		.2byte	0x4
+ 2940 057e F3       		.byte	0xf3
+ 2941 057f 01       		.uleb128 0x1
+ 2942 0580 53       		.byte	0x53
+ 2943 0581 9F       		.byte	0x9f
+ 2944 0582 00000000 		.4byte	0
+ 2945 0586 00000000 		.4byte	0
+ 2946              	.LLST33:
+ 2947 058a 0E000000 		.4byte	.LVL97
+ 2948 058e 28000000 		.4byte	.LVL104
+ 2949 0592 0200     		.2byte	0x2
+ 2950 0594 30       		.byte	0x30
+ 2951 0595 9F       		.byte	0x9f
+ 2952 0596 28000000 		.4byte	.LVL104
+ 2953 059a 0C010000 		.4byte	.LVL136
+ 2954 059e 0100     		.2byte	0x1
+ 2955 05a0 58       		.byte	0x58
+ 2956 05a1 10010000 		.4byte	.LVL137
+ 2957 05a5 1C010000 		.4byte	.LVL138
+ 2958 05a9 0100     		.2byte	0x1
+ 2959 05ab 58       		.byte	0x58
+ 2960 05ac 00000000 		.4byte	0
+ 2961 05b0 00000000 		.4byte	0
+ 2962              	.LLST34:
+ 2963 05b4 0E000000 		.4byte	.LVL97
+ 2964 05b8 28000000 		.4byte	.LVL104
+ 2965 05bc 0200     		.2byte	0x2
+ 2966 05be 30       		.byte	0x30
+ 2967 05bf 9F       		.byte	0x9f
+ 2968 05c0 28000000 		.4byte	.LVL104
+ 2969 05c4 66000000 		.4byte	.LVL110
+ 2970 05c8 0100     		.2byte	0x1
+ 2971 05ca 55       		.byte	0x55
+ 2972 05cb 68000000 		.4byte	.LVL111
+ 2973 05cf 6A000000 		.4byte	.LVL112
+ 2974 05d3 0100     		.2byte	0x1
+ 2975 05d5 55       		.byte	0x55
+ 2976 05d6 6C000000 		.4byte	.LVL113
+ 2977 05da 82000000 		.4byte	.LVL115
+ 2978 05de 0100     		.2byte	0x1
+ 2979 05e0 55       		.byte	0x55
+ 2980 05e1 82000000 		.4byte	.LVL115
+ 2981 05e5 9A000000 		.4byte	.LVL117
+ 2982 05e9 0100     		.2byte	0x1
+ 2983 05eb 54       		.byte	0x54
+ 2984 05ec 9C000000 		.4byte	.LVL118
+ 2985 05f0 9E000000 		.4byte	.LVL119
+ 2986 05f4 0100     		.2byte	0x1
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 63
+
+
+ 2987 05f6 54       		.byte	0x54
+ 2988 05f7 9E000000 		.4byte	.LVL119
+ 2989 05fb A0000000 		.4byte	.LVL120
+ 2990 05ff 0100     		.2byte	0x1
+ 2991 0601 55       		.byte	0x55
+ 2992 0602 A0000000 		.4byte	.LVL120
+ 2993 0606 BE000000 		.4byte	.LVL122
+ 2994 060a 0100     		.2byte	0x1
+ 2995 060c 54       		.byte	0x54
+ 2996 060d C0000000 		.4byte	.LVL123
+ 2997 0611 CE000000 		.4byte	.LVL125
+ 2998 0615 0100     		.2byte	0x1
+ 2999 0617 54       		.byte	0x54
+ 3000 0618 DE000000 		.4byte	.LVL129
+ 3001 061c E2000000 		.4byte	.LVL130
+ 3002 0620 0200     		.2byte	0x2
+ 3003 0622 30       		.byte	0x30
+ 3004 0623 9F       		.byte	0x9f
+ 3005 0624 E2000000 		.4byte	.LVL130
+ 3006 0628 F8000000 		.4byte	.LVL132
+ 3007 062c 0100     		.2byte	0x1
+ 3008 062e 54       		.byte	0x54
+ 3009 062f FA000000 		.4byte	.LVL133
+ 3010 0633 10010000 		.4byte	.LVL137
+ 3011 0637 0100     		.2byte	0x1
+ 3012 0639 54       		.byte	0x54
+ 3013 063a 00000000 		.4byte	0
+ 3014 063e 00000000 		.4byte	0
+ 3015              	.LLST35:
+ 3016 0642 0E000000 		.4byte	.LVL97
+ 3017 0646 28000000 		.4byte	.LVL104
+ 3018 064a 0200     		.2byte	0x2
+ 3019 064c 30       		.byte	0x30
+ 3020 064d 9F       		.byte	0x9f
+ 3021 064e 28000000 		.4byte	.LVL104
+ 3022 0652 5A000000 		.4byte	.LVL106
+ 3023 0656 0100     		.2byte	0x1
+ 3024 0658 54       		.byte	0x54
+ 3025 0659 5C000000 		.4byte	.LVL107
+ 3026 065d 5E000000 		.4byte	.LVL108
+ 3027 0661 0100     		.2byte	0x1
+ 3028 0663 54       		.byte	0x54
+ 3029 0664 60000000 		.4byte	.LVL109
+ 3030 0668 6A000000 		.4byte	.LVL112
+ 3031 066c 0100     		.2byte	0x1
+ 3032 066e 54       		.byte	0x54
+ 3033 066f 00000000 		.4byte	0
+ 3034 0673 00000000 		.4byte	0
+ 3035              	.LLST36:
+ 3036 0677 0E000000 		.4byte	.LVL97
+ 3037 067b 22000000 		.4byte	.LVL103
+ 3038 067f 0600     		.2byte	0x6
+ 3039 0681 9E       		.byte	0x9e
+ 3040 0682 04       		.uleb128 0x4
+ 3041 0683 00000000 		.4byte	0
+ 3042 0687 22000000 		.4byte	.LVL103
+ 3043 068b 28000000 		.4byte	.LVL104
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 64
+
+
+ 3044 068f 0100     		.2byte	0x1
+ 3045 0691 50       		.byte	0x50
+ 3046 0692 28000000 		.4byte	.LVL104
+ 3047 0696 6A000000 		.4byte	.LVL112
+ 3048 069a 0100     		.2byte	0x1
+ 3049 069c 59       		.byte	0x59
+ 3050 069d 6A000000 		.4byte	.LVL112
+ 3051 06a1 6C000000 		.4byte	.LVL113
+ 3052 06a5 0100     		.2byte	0x1
+ 3053 06a7 50       		.byte	0x50
+ 3054 06a8 6C000000 		.4byte	.LVL113
+ 3055 06ac 08010000 		.4byte	.LVL135
+ 3056 06b0 0100     		.2byte	0x1
+ 3057 06b2 59       		.byte	0x59
+ 3058 06b3 08010000 		.4byte	.LVL135
+ 3059 06b7 24010000 		.4byte	.LFE5
+ 3060 06bb 0100     		.2byte	0x1
+ 3061 06bd 50       		.byte	0x50
+ 3062 06be 00000000 		.4byte	0
+ 3063 06c2 00000000 		.4byte	0
+ 3064              	.LLST37:
+ 3065 06c6 0E000000 		.4byte	.LVL97
+ 3066 06ca 28000000 		.4byte	.LVL104
+ 3067 06ce 0600     		.2byte	0x6
+ 3068 06d0 9E       		.byte	0x9e
+ 3069 06d1 04       		.uleb128 0x4
+ 3070 06d2 00000000 		.4byte	0
+ 3071 06d6 DE000000 		.4byte	.LVL129
+ 3072 06da E2000000 		.4byte	.LVL130
+ 3073 06de 0100     		.2byte	0x1
+ 3074 06e0 50       		.byte	0x50
+ 3075 06e1 E2000000 		.4byte	.LVL130
+ 3076 06e5 10010000 		.4byte	.LVL137
+ 3077 06e9 0100     		.2byte	0x1
+ 3078 06eb 55       		.byte	0x55
+ 3079 06ec 00000000 		.4byte	0
+ 3080 06f0 00000000 		.4byte	0
+ 3081              	.LLST38:
+ 3082 06f4 00000000 		.4byte	.LVL139
+ 3083 06f8 1E000000 		.4byte	.LVL144
+ 3084 06fc 0100     		.2byte	0x1
+ 3085 06fe 50       		.byte	0x50
+ 3086 06ff 1E000000 		.4byte	.LVL144
+ 3087 0703 44000000 		.4byte	.LVL148
+ 3088 0707 0100     		.2byte	0x1
+ 3089 0709 58       		.byte	0x58
+ 3090 070a 44000000 		.4byte	.LVL148
+ 3091 070e 4E000000 		.4byte	.LVL152
+ 3092 0712 0100     		.2byte	0x1
+ 3093 0714 50       		.byte	0x50
+ 3094 0715 4E000000 		.4byte	.LVL152
+ 3095 0719 E2000000 		.4byte	.LVL163
+ 3096 071d 0100     		.2byte	0x1
+ 3097 071f 58       		.byte	0x58
+ 3098 0720 E2000000 		.4byte	.LVL163
+ 3099 0724 E8000000 		.4byte	.LFE1
+ 3100 0728 0400     		.2byte	0x4
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 65
+
+
+ 3101 072a F3       		.byte	0xf3
+ 3102 072b 01       		.uleb128 0x1
+ 3103 072c 50       		.byte	0x50
+ 3104 072d 9F       		.byte	0x9f
+ 3105 072e 00000000 		.4byte	0
+ 3106 0732 00000000 		.4byte	0
+ 3107              	.LLST39:
+ 3108 0736 00000000 		.4byte	.LVL139
+ 3109 073a 1C000000 		.4byte	.LVL143
+ 3110 073e 0100     		.2byte	0x1
+ 3111 0740 51       		.byte	0x51
+ 3112 0741 1C000000 		.4byte	.LVL143
+ 3113 0745 44000000 		.4byte	.LVL148
+ 3114 0749 0100     		.2byte	0x1
+ 3115 074b 55       		.byte	0x55
+ 3116 074c 44000000 		.4byte	.LVL148
+ 3117 0750 4C000000 		.4byte	.LVL151
+ 3118 0754 0100     		.2byte	0x1
+ 3119 0756 51       		.byte	0x51
+ 3120 0757 4C000000 		.4byte	.LVL151
+ 3121 075b E2000000 		.4byte	.LVL163
+ 3122 075f 0100     		.2byte	0x1
+ 3123 0761 55       		.byte	0x55
+ 3124 0762 E2000000 		.4byte	.LVL163
+ 3125 0766 E8000000 		.4byte	.LFE1
+ 3126 076a 0400     		.2byte	0x4
+ 3127 076c F3       		.byte	0xf3
+ 3128 076d 01       		.uleb128 0x1
+ 3129 076e 51       		.byte	0x51
+ 3130 076f 9F       		.byte	0x9f
+ 3131 0770 00000000 		.4byte	0
+ 3132 0774 00000000 		.4byte	0
+ 3133              	.LLST40:
+ 3134 0778 00000000 		.4byte	.LVL139
+ 3135 077c 1A000000 		.4byte	.LVL142
+ 3136 0780 0100     		.2byte	0x1
+ 3137 0782 52       		.byte	0x52
+ 3138 0783 1A000000 		.4byte	.LVL142
+ 3139 0787 44000000 		.4byte	.LVL148
+ 3140 078b 0100     		.2byte	0x1
+ 3141 078d 5A       		.byte	0x5a
+ 3142 078e 44000000 		.4byte	.LVL148
+ 3143 0792 4A000000 		.4byte	.LVL150
+ 3144 0796 0100     		.2byte	0x1
+ 3145 0798 52       		.byte	0x52
+ 3146 0799 4A000000 		.4byte	.LVL150
+ 3147 079d E2000000 		.4byte	.LVL163
+ 3148 07a1 0100     		.2byte	0x1
+ 3149 07a3 5A       		.byte	0x5a
+ 3150 07a4 E2000000 		.4byte	.LVL163
+ 3151 07a8 E8000000 		.4byte	.LFE1
+ 3152 07ac 0400     		.2byte	0x4
+ 3153 07ae F3       		.byte	0xf3
+ 3154 07af 01       		.uleb128 0x1
+ 3155 07b0 52       		.byte	0x52
+ 3156 07b1 9F       		.byte	0x9f
+ 3157 07b2 00000000 		.4byte	0
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 66
+
+
+ 3158 07b6 00000000 		.4byte	0
+ 3159              	.LLST41:
+ 3160 07ba 00000000 		.4byte	.LVL139
+ 3161 07be 18000000 		.4byte	.LVL141
+ 3162 07c2 0100     		.2byte	0x1
+ 3163 07c4 53       		.byte	0x53
+ 3164 07c5 18000000 		.4byte	.LVL141
+ 3165 07c9 44000000 		.4byte	.LVL148
+ 3166 07cd 0100     		.2byte	0x1
+ 3167 07cf 59       		.byte	0x59
+ 3168 07d0 44000000 		.4byte	.LVL148
+ 3169 07d4 48000000 		.4byte	.LVL149
+ 3170 07d8 0100     		.2byte	0x1
+ 3171 07da 53       		.byte	0x53
+ 3172 07db 48000000 		.4byte	.LVL149
+ 3173 07df E2000000 		.4byte	.LVL163
+ 3174 07e3 0100     		.2byte	0x1
+ 3175 07e5 59       		.byte	0x59
+ 3176 07e6 E2000000 		.4byte	.LVL163
+ 3177 07ea E8000000 		.4byte	.LFE1
+ 3178 07ee 0400     		.2byte	0x4
+ 3179 07f0 F3       		.byte	0xf3
+ 3180 07f1 01       		.uleb128 0x1
+ 3181 07f2 53       		.byte	0x53
+ 3182 07f3 9F       		.byte	0x9f
+ 3183 07f4 00000000 		.4byte	0
+ 3184 07f8 00000000 		.4byte	0
+ 3185              	.LLST42:
+ 3186 07fc 00000000 		.4byte	.LVL139
+ 3187 0800 E2000000 		.4byte	.LVL163
+ 3188 0804 0200     		.2byte	0x2
+ 3189 0806 91       		.byte	0x91
+ 3190 0807 00       		.sleb128 0
+ 3191 0808 E2000000 		.4byte	.LVL163
+ 3192 080c E8000000 		.4byte	.LFE1
+ 3193 0810 0200     		.2byte	0x2
+ 3194 0812 7D       		.byte	0x7d
+ 3195 0813 00       		.sleb128 0
+ 3196 0814 00000000 		.4byte	0
+ 3197 0818 00000000 		.4byte	0
+ 3198              	.LLST43:
+ 3199 081c 00000000 		.4byte	.LVL139
+ 3200 0820 E2000000 		.4byte	.LVL163
+ 3201 0824 0200     		.2byte	0x2
+ 3202 0826 91       		.byte	0x91
+ 3203 0827 04       		.sleb128 4
+ 3204 0828 E2000000 		.4byte	.LVL163
+ 3205 082c E8000000 		.4byte	.LFE1
+ 3206 0830 0200     		.2byte	0x2
+ 3207 0832 7D       		.byte	0x7d
+ 3208 0833 04       		.sleb128 4
+ 3209 0834 00000000 		.4byte	0
+ 3210 0838 00000000 		.4byte	0
+ 3211              	.LLST44:
+ 3212 083c 14000000 		.4byte	.LVL140
+ 3213 0840 5A000000 		.4byte	.LVL154
+ 3214 0844 0200     		.2byte	0x2
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 67
+
+
+ 3215 0846 30       		.byte	0x30
+ 3216 0847 9F       		.byte	0x9f
+ 3217 0848 5A000000 		.4byte	.LVL154
+ 3218 084c D8000000 		.4byte	.LVL161
+ 3219 0850 0100     		.2byte	0x1
+ 3220 0852 54       		.byte	0x54
+ 3221 0853 DA000000 		.4byte	.LVL162
+ 3222 0857 E2000000 		.4byte	.LVL163
+ 3223 085b 0100     		.2byte	0x1
+ 3224 085d 54       		.byte	0x54
+ 3225 085e 00000000 		.4byte	0
+ 3226 0862 00000000 		.4byte	0
+ 3227              		.section	.debug_aranges,"",%progbits
+ 3228 0000 4C000000 		.4byte	0x4c
+ 3229 0004 0200     		.2byte	0x2
+ 3230 0006 00000000 		.4byte	.Ldebug_info0
+ 3231 000a 04       		.byte	0x4
+ 3232 000b 00       		.byte	0
+ 3233 000c 0000     		.2byte	0
+ 3234 000e 0000     		.2byte	0
+ 3235 0010 00000000 		.4byte	.LFB4
+ 3236 0014 84000000 		.4byte	.LFE4-.LFB4
+ 3237 0018 00000000 		.4byte	.LFB6
+ 3238 001c 52000000 		.4byte	.LFE6-.LFB6
+ 3239 0020 00000000 		.4byte	.LFB3
+ 3240 0024 2E000000 		.4byte	.LFE3-.LFB3
+ 3241 0028 00000000 		.4byte	.LFB2
+ 3242 002c A8000000 		.4byte	.LFE2-.LFB2
+ 3243 0030 00000000 		.4byte	.LFB7
+ 3244 0034 08010000 		.4byte	.LFE7-.LFB7
+ 3245 0038 00000000 		.4byte	.LFB5
+ 3246 003c 24010000 		.4byte	.LFE5-.LFB5
+ 3247 0040 00000000 		.4byte	.LFB1
+ 3248 0044 E8000000 		.4byte	.LFE1-.LFB1
+ 3249 0048 00000000 		.4byte	0
+ 3250 004c 00000000 		.4byte	0
+ 3251              		.section	.debug_ranges,"",%progbits
+ 3252              	.Ldebug_ranges0:
+ 3253 0000 00000000 		.4byte	.LFB4
+ 3254 0004 84000000 		.4byte	.LFE4
+ 3255 0008 00000000 		.4byte	.LFB6
+ 3256 000c 52000000 		.4byte	.LFE6
+ 3257 0010 00000000 		.4byte	.LFB3
+ 3258 0014 2E000000 		.4byte	.LFE3
+ 3259 0018 00000000 		.4byte	.LFB2
+ 3260 001c A8000000 		.4byte	.LFE2
+ 3261 0020 00000000 		.4byte	.LFB7
+ 3262 0024 08010000 		.4byte	.LFE7
+ 3263 0028 00000000 		.4byte	.LFB5
+ 3264 002c 24010000 		.4byte	.LFE5
+ 3265 0030 00000000 		.4byte	.LFB1
+ 3266 0034 E8000000 		.4byte	.LFE1
+ 3267 0038 00000000 		.4byte	0
+ 3268 003c 00000000 		.4byte	0
+ 3269              		.section	.debug_line,"",%progbits
+ 3270              	.Ldebug_line0:
+ 3271 0000 D6020000 		.section	.debug_str,"MS",%progbits,1
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 68
+
+
+ 3271      0200B200 
+ 3271      00000201 
+ 3271      FB0E0D00 
+ 3271      01010101 
+ 3272              	.LASF29:
+ 3273 0000 636F6D70 		.ascii	"compute_rayleigh_quotient\000"
+ 3273      7574655F 
+ 3273      7261796C 
+ 3273      65696768 
+ 3273      5F71756F 
+ 3274              	.LASF33:
+ 3275 001a 6569675F 		.ascii	"eig_decomp\000"
+ 3275      6465636F 
+ 3275      6D7000
+ 3276              	.LASF30:
+ 3277 0025 7261796C 		.ascii	"rayleigh_quotient_iteration\000"
+ 3277      65696768 
+ 3277      5F71756F 
+ 3277      7469656E 
+ 3277      745F6974 
+ 3278              	.LASF11:
+ 3279 0041 666C6F61 		.ascii	"float\000"
+ 3279      7400
+ 3280              	.LASF0:
+ 3281 0047 7369676E 		.ascii	"signed char\000"
+ 3281      65642063 
+ 3281      68617200 
+ 3282              	.LASF1:
+ 3283 0053 756E7369 		.ascii	"unsigned char\000"
+ 3283      676E6564 
+ 3283      20636861 
+ 3283      7200
+ 3284              	.LASF35:
+ 3285 0061 474E5520 		.ascii	"GNU C11 5.4.1 20160609 (release) [ARM/embedded-5-br"
+ 3285      43313120 
+ 3285      352E342E 
+ 3285      31203230 
+ 3285      31363036 
+ 3286 0094 616E6368 		.ascii	"anch revision 237715] -mcpu=cortex-m3 -mthumb -g -O"
+ 3286      20726576 
+ 3286      6973696F 
+ 3286      6E203233 
+ 3286      37373135 
+ 3287 00c7 67202D66 		.ascii	"g -ffunction-sections -ffat-lto-objects\000"
+ 3287      66756E63 
+ 3287      74696F6E 
+ 3287      2D736563 
+ 3287      74696F6E 
+ 3288              	.LASF32:
+ 3289 00ef 696E7665 		.ascii	"invert_matrix\000"
+ 3289      72745F6D 
+ 3289      61747269 
+ 3289      7800
+ 3290              	.LASF36:
+ 3291 00fd 6569672E 		.ascii	"eig.c\000"
+ 3291      6300
+ 3292              	.LASF5:
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 69
+
+
+ 3293 0103 6C6F6E67 		.ascii	"long unsigned int\000"
+ 3293      20756E73 
+ 3293      69676E65 
+ 3293      6420696E 
+ 3293      7400
+ 3294              	.LASF19:
+ 3295 0115 74656D70 		.ascii	"temp\000"
+ 3295      00
+ 3296              	.LASF3:
+ 3297 011a 73686F72 		.ascii	"short unsigned int\000"
+ 3297      7420756E 
+ 3297      7369676E 
+ 3297      65642069 
+ 3297      6E7400
+ 3298              	.LASF25:
+ 3299 012d 705F6974 		.ascii	"p_iter\000"
+ 3299      657200
+ 3300              	.LASF27:
+ 3301 0134 74656D70 		.ascii	"temp_vec\000"
+ 3301      5F766563 
+ 3301      00
+ 3302              	.LASF23:
+ 3303 013d 706F7765 		.ascii	"power_iteration\000"
+ 3303      725F6974 
+ 3303      65726174 
+ 3303      696F6E00 
+ 3304              	.LASF38:
+ 3305 014d 6D656D73 		.ascii	"memset\000"
+ 3305      657400
+ 3306              	.LASF12:
+ 3307 0154 646F7562 		.ascii	"double\000"
+ 3307      6C6500
+ 3308              	.LASF34:
+ 3309 015b 4569675F 		.ascii	"Eig_vecs_init\000"
+ 3309      76656373 
+ 3309      5F696E69 
+ 3309      7400
+ 3310              	.LASF24:
+ 3311 0169 5068695F 		.ascii	"Phi_row\000"
+ 3311      726F7700 
+ 3312              	.LASF10:
+ 3313 0171 75696E74 		.ascii	"uint16\000"
+ 3313      313600
+ 3314              	.LASF37:
+ 3315 0178 433A5C55 		.ascii	"C:\\Users\\dmeichle\\Desktop\\Code\\Quench\\BNL\\PS"
+ 3315      73657273 
+ 3315      5C646D65 
+ 3315      6963686C 
+ 3315      655C4465 
+ 3316 01a4 6F435F54 		.ascii	"oC_Template_Workspace\\PSoC_Template_Project.cydsn\000"
+ 3316      656D706C 
+ 3316      6174655F 
+ 3316      576F726B 
+ 3316      73706163 
+ 3317              	.LASF21:
+ 3318 01d6 6C616D62 		.ascii	"lambda\000"
+ 3318      646100
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 70
+
+
+ 3319              	.LASF17:
+ 3320 01dd 6569675F 		.ascii	"eig_vec\000"
+ 3320      76656300 
+ 3321              	.LASF8:
+ 3322 01e5 756E7369 		.ascii	"unsigned int\000"
+ 3322      676E6564 
+ 3322      20696E74 
+ 3322      00
+ 3323              	.LASF20:
+ 3324 01f2 4465666C 		.ascii	"Deflated_Sigma\000"
+ 3324      61746564 
+ 3324      5F536967 
+ 3324      6D6100
+ 3325              	.LASF7:
+ 3326 0201 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 3326      206C6F6E 
+ 3326      6720756E 
+ 3326      7369676E 
+ 3326      65642069 
+ 3327              	.LASF28:
+ 3328 0218 5369676D 		.ascii	"SigmaInverse\000"
+ 3328      61496E76 
+ 3328      65727365 
+ 3328      00
+ 3329              	.LASF16:
+ 3330 0225 5369676D 		.ascii	"Sigma\000"
+ 3330      6100
+ 3331              	.LASF22:
+ 3332 022b 6465666C 		.ascii	"deflation\000"
+ 3332      6174696F 
+ 3332      6E00
+ 3333              	.LASF15:
+ 3334 0235 73697A65 		.ascii	"sizetype\000"
+ 3334      74797065 
+ 3334      00
+ 3335              	.LASF6:
+ 3336 023e 6C6F6E67 		.ascii	"long long int\000"
+ 3336      206C6F6E 
+ 3336      6720696E 
+ 3336      7400
+ 3337              	.LASF13:
+ 3338 024c 63686172 		.ascii	"char\000"
+ 3338      00
+ 3339              	.LASF31:
+ 3340 0251 725F6974 		.ascii	"r_iter\000"
+ 3340      657200
+ 3341              	.LASF2:
+ 3342 0258 73686F72 		.ascii	"short int\000"
+ 3342      7420696E 
+ 3342      7400
+ 3343              	.LASF18:
+ 3344 0262 6C616D62 		.ascii	"lambda_l\000"
+ 3344      64615F6C 
+ 3344      00
+ 3345              	.LASF9:
+ 3346 026b 75696E74 		.ascii	"uint8\000"
+ 3346      3800
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccPKrfC4.s 			page 71
+
+
+ 3347              	.LASF4:
+ 3348 0271 6C6F6E67 		.ascii	"long int\000"
+ 3348      20696E74 
+ 3348      00
+ 3349              	.LASF14:
+ 3350 027a 6C6F6E67 		.ascii	"long double\000"
+ 3350      20646F75 
+ 3350      626C6500 
+ 3351              	.LASF26:
+ 3352 0286 6E6F726D 		.ascii	"norm_v\000"
+ 3352      5F7600
+ 3353              	.LASF39:
+ 3354 028d 73717274 		.ascii	"sqrt\000"
+ 3354      00
+ 3355              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 5.4.1 20160609 (release) [ARM/embedded-5-bran

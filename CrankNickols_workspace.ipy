@@ -1,0 +1,98 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Sep 17 10:56:26 2020
+
+@author: dmeichle
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+r = .05
+sp  = (1+2*r)
+sn  = (1-2*r)
+N = 100
+#%%
+M = np.zeros([N,N])
+M[0,0]  =     sp
+M[0,1]  =  -2*r
+M[-1,-2] = -2*r
+M[-1,-1] =    sp
+for i in range(1,N-1):
+    M[i,i-1] = -r
+    M[i,i] = sp
+    M[i,i+1] = -r
+#%%###############
+NT = 10000
+u = np.zeros([NT,N])
+ics = np.zeros(N)
+#M = from above
+Minv  = np.linalg.inv(M)
+
+rOffInds = N//4
+lOffInds = N - N//4
+
+#1
+#ics[rOffInds:lOffInds] = np.cos(np.linspace(0,1,lOffInds - rOffInds) * 2*np.pi ) - 1.0
+
+
+#2
+#ics[rOffInds:lOffInds] = np.sin(np.linspace(0,1,lOffInds - rOffInds) * 2*np.pi ) #- 1.0
+
+
+#3
+#ics[rOffInds:lOffInds] = np.sin(np.linspace(0,1,lOffInds - rOffInds) * 2*np.pi ) #- 1.0
+#ics += 1.0*np.linspace(0,1.0,N)
+
+#4
+ics = np.zeros(N)
+#%
+ics = np.random.random(N) - .5
+ics[0] = 0
+ics[-1] = 0
+
+u[0,:] = ics[:]
+B  = np.zeros(N)
+for t in range(1,NT):
+    if(t//10 == 0):
+        print(t)
+    B[0]  = sn*u[t-1,0]  + 2*r*u[t-1, 1]
+    
+    B[-1] = sn*u[t-1,-1] + 2*r*u[t-1,-2]
+    
+    for i in range(1,N-1):
+        B[i] = r*u[t-1,i-1] + sn*u[t-1,i] + r*u[t-1,i+1]
+    u[t,:] = np.matmul(Minv, B ) #todo only need three elements multiplied ?
+    u[t,0] = ics[0]
+    u[t,-1] = ics[-1]
+#%%
+plt.figure()
+
+plt.plot(u[0,:])
+plt.plot(u[NT//2,:])
+plt.plot(u[-1,:])
+
+
+plt.figure()
+for i in range(0,NT,50):
+    plt.plot(u[i,:])
+    
+#%%
+"""
+
+
+bc = np.zeros(N)
+bc[:] = 1.0
+
+un = np.cos(np.linspace(0,1,N) * 2*np.pi ) - 1.0 #known 'previous solution'
+
+B[0]  = s*un[0]  + 2*r*un[ 1]
+B[-1] = s*un[-1] + 2*r*un[-1]
+for i in range(1,N-1):
+    B[i] = r*un[i-1] + s*un[i] + r*un[i+1]
+#%%
+u = np.matmul(np.linalg.inv(M), B)
+
+plt.figure()
+plt.plot(un)
+plt.plot(u)
+"""

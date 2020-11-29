@@ -1,0 +1,58 @@
+#By David Meichle
+#Commonwealth Fusion Systems
+#Started 09/04/2020
+#%%
+%cd C:\Users\dmeichle\Desktop\Code\Quench
+#%%
+import csv
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import axes3d
+from scipy import interpolate
+import pandas as pd
+#%%
+def getIcFunc(dataFile = r'ReferenceData\scaled_SOX_Shot8012_Interpolated4-50K_750A_mm2_1.csv'):
+    
+    #   0      1    2    3     4
+    #Columns: 'Angle', 'K', 'T', 'Ic', 'J'
+    #Valid only between 4.0 and 50.0 Kelvin
+    #Valid only for applied field between 3.0 and 25.0 Tesla
+    #Valid at theta = 0.0 which is worst-case
+    dataRaw = np.genfromtxt(dataFile, delimiter = ',', skip_header=1)
+    Ic_func = interpolate.interp2d( dataRaw[:,1], dataRaw[:,2], dataRaw[:,3], 
+                             copy = True, kind = 'linear', bounds_error=False)
+    return Ic_func
+#%%
+Ic_func = getIcFunc()
+print( Ic_func(20.0, 15.0)) #Critical Current at 20 K and 15 T
+
+
+
+
+
+#%%##########How to make Ic_map:
+dataFile = r'ReferenceData\scaled_SOX_Shot8012_Interpolated4-50K_750A_mm2_1.csv'
+dataRaw = np.genfromtxt(dataFile, delimiter = ',', skip_header=1)
+Ic_func = interpolate.interp2d( dataRaw[:,1], dataRaw[:,2], dataRaw[:,3], 
+                         copy = True, kind = 'linear', bounds_error=False)
+Kx = np.unique(dataRaw[:,1])
+Ty = np.unique(dataRaw[:,2])
+
+Kx = np.linspace(Kx[0], Kx[-1],100)
+Ty = np.linspace(Ty[0], Ty[-1],100)
+Ic_map = np.zeros([100,100])
+
+for i in range(len(Kx)):
+    for j in range(len(Ty)):
+        Ic_map[i,j] = Ic_func(Kx[i], Ty[j])
+
+Kxx,Tyy = np.meshgrid(Kx, Ty)
+
+fig = plt.figure()
+ax = fig.add_subplot(111,projection = '3d')
+ax.invert_xaxis()
+ax.plot_surface(Kxx, Tyy, Ic_map)
+
+ax.set_xlabel("Temperature K",   fontsize = 12)
+ax.set_ylabel("Applied Field T", fontsize = 12)
+ax.set_zlabel("Ic Amps",         fontsize = 12)

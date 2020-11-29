@@ -1,0 +1,9 @@
+C:\Users\dmeichle\Desktop\Code\Quench\BNL\PSoC_Template_Workspace\PSoC_Template_Project.cydsn\PSoC_Template_Project.cyprj|46ee9967-ca77-4076-b72f-2a92f4182d78
+C:\Program Files (x86)\Cypress\PSoC Creator\4.4\PSoC Creator\psoc\content\default\CyAnnotationLibrary\CyAnnotationLibrary.cylib\CyAnnotationLibrary.cyprj|d2c7ab85-18a2-4a32-b83e-2b0e8f1c24b7
+C:\Users\dmeichle\Documents\PSoC Creator\4.4\Downloads ( 4.4).cylib\Downloads ( 4.4).cyprj|af25a2ce-d12d-48b0-9233-f0b46d0f1920
+C:\Program Files (x86)\Cypress\PSoC Creator\4.4\PSoC Creator\psoc\content\cycomponentlibraryupdates\CyComponentLibraryUpdates.cylib\CyComponentLibraryUpdates.cyprj|9e0b7559-f3ca-498c-a335-c8c4eacea24a
+C:\Program Files (x86)\Cypress\PSoC Creator\4.4\PSoC Creator\psoc\content\cycomponentlibrary\CyComponentLibrary.cylib\CyComponentLibrary.cyprj|5d5004ba-2ff7-436f-9c4f-fec562765560
+C:\Program Files (x86)\Cypress\PSoC Creator\4.4\PSoC Creator\psoc\content\cyprimitives\CyPrimitives.cylib\CyPrimitives.cyprj|41a478c7-1eb0-4c5e-b5c1-99076ce2899d
+C:\Users\dmeichle\Documents\PSoC Creator\Timer01\Timer01.cydsn\Timer01.cyprj|6e4a352a-7a43-4377-887b-be97c2b2d607
+C:\Program Files (x86)\Cypress\PSoC Creator\4.4\PSoC Creator\psoc\content\default\CyReferenceLibrary\CyReferenceLibrary.cylib\CyReferenceLibrary.cyprj|8acbb50a-54d1-49e7-b5c9-edb0c23aa625
+C:\Users\dmeichle\Desktop\Code\Quench\BNL\PSoC_Template_Workspace\Design01.cydsn\Design01.cyprj|6c3a8f73-2e20-4f9c-8078-18fb88b49352

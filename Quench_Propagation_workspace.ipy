@@ -1,0 +1,308 @@
+import sys; sys.path.append(r'C:\Users\dmeichle\Desktop\Code\Quench')
+import csv
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import axes3d
+from scipy import interpolate
+import enum
+#todo: move utilities back into separate file?
+#from QuenchRefDataUtilities.ipy import getIcFunc, getKFunc, getCpFunc #dunno why not working...
+#ugly hack: 
+#runfile('C:/Users/dmeichle/Desktop/Code/Quench/QuenchRefDataUtilities.ipy', wdir='C:/Users/dmeichle/Desktop/Code/Quench')
+#Courant Condition: 1 > v dt / dx
+#               dx^2 > v dt
+plt.close('all')
+alpha = 1
+#%%
+def getIcFunc(dataFile = r'ReferenceData\scaled_SOX_Shot8012_Interpolated4-50K_750A_mm2_1.csv'):
+    """
+    returns as scipy.interpolate function handle with two inargs and one output
+    
+    input:  temp_Kelvin, appliedField_Tesla
+        ex: Ic(4.2, 20) will retun Critical Current at 4.2 K and 20 T
+    output: critical current in Amps
+    
+    """
+    #            0      1    2    3     4
+    #Columns: 'Angle', 'K', 'T', 'Ic', 'J'
+    #Valid only between 4.0 and 50.0 Kelvin
+    #Valid only for applied field between 3.0 and 25.0 Tesla
+    #Valid at theta = 0.0 which is worst-case
+    dataRaw = np.genfromtxt(dataFile, delimiter = ',', skip_header=1)
+    Ic_func = interpolate.interp2d( dataRaw[:,1], dataRaw[:,2], dataRaw[:,3], 
+                             copy = True, kind = 'linear', bounds_error=False)
+    return Ic_func
+#%%
+def getCpFunc(dataFile = r"C:\Users\dmeichle\Desktop\Code\Quench\ReferenceData\Copper_Cryo_Props_NIST_ThermalCp.txt"):
+    """
+    returns as scipy.interpolate function handle with one inargs and one output:
+    input:  temp_Kelvin
+        ex: 
+        Ic = getCpFunc()
+        Ic(20.0) will return Specific Heat at 20.0
+    output: Specific Heat Joule/(Kilogram Kelvin)
+    """
+    dataRaw = np.genfromtxt(dataFile, skip_header=4)
+    Cp_func = interpolate.interp1d( dataRaw[:,0], dataRaw[:,1],
+                             copy = True, kind = 'linear', bounds_error=False)
+    return Cp_func
+#%%
+def getKFunc(dataFile = r"C:\Users\dmeichle\Desktop\Code\Quench\ReferenceData\Copper_Cryo_Props_NIST_ThermalK.txt"):
+    """
+    returns as scipy.interpolate function handle with one inargs and one output:
+    
+    input:  temp_Kelvin
+        ex: 
+        k = getKFunc()
+        k(20.0) will return the thermal conductivity at 20.0K
+    output: Thermal Conductivity Watts/(meter Kelvin)
+    """
+    dataRaw = np.genfromtxt(dataFile, skip_header=1)
+    k_func = interpolate.interp1d( dataRaw[:,0], dataRaw[:,6],
+                             copy = True, kind = 'linear', bounds_error=False)
+    return k_func
+##############################################################################
+class Config():
+    """
+    Container class for all system level parameters
+    """
+    def __init__(self):
+        self.backGroundTemp_K  = 0.0
+        self.backGroundField_T = 0.0
+        self.dx_m       = 0.001
+        self.dt_s       = 0.0001
+        self.Nt = 100
+        self.courantNumber = np.abs(2.0*self.dt_s / (self.dx_m*self.dx_m))
+        print('\n', 'Courant Number: ', self.courantNumber, '?< 1.0')
+        self.cableLength_m     = 1.0
+        #self.timeSteps_s    = np.arange( 0.0,self.Tfinal_s, np.int( np.floor(self.Tfinal_s / self.dt_s)) )
+        self.Nx = np.int( np.floor(1.0 * self.cableLength_m / self.dx_m) )
+        self.Tfinal_s   = self.dt_s * self.Nt
+        self.appliedHeatingFunc_W = lambda t:np.zeros(self.Nx) #default return zero
+
+    def setAppliedHeatingFunc( self, qFunc_W ):
+        
+        self.appliedHeatingFunc_W = qFunc_W
+
+##############################################################################
+class Solution():
+    """
+    Container class for problem solution
+    """
+    #todo
+    pass
+
+##############################################################################
+class solveHeatEq_1D_CrankNicholson_2nd():
+    def __init__(self, config = Config() ):
+        self.config  = config
+        self.getIc = getIcFunc()
+        self.getK  = getKFunc()
+        self.getCp = getCpFunc()
+        self.getAppliedHeat_W   = None
+        self.appliedHeatFunc_W  = None
+        self.currentTimeStep    = int(0)
+        self.solution_K         = None
+
+
+    def solve(self, ics = None):
+        """
+        todo: store solution in a class
+        returns u[i,j] where i indexes time step and j space
+        todo: return u, t, x, Cv, k, Ic etc for convenience 
+        """
+
+        #Tridiagonal stensil setup
+        r = self.config.dt_s / (2.0* (self.config.dx_m*self.config.dx_m) )
+        
+        sp  = (1+2*r)
+        sn  = (1-2*r)
+        M = np.zeros([self.config.Nx,self.config.Nx])
+        M[0,0]  =     sp
+        M[0,1]  =  -2*r
+        M[-1,-2] = -2*r
+        M[-1,-1] =    sp
+        for i in range(1,self.config.Nx-1):
+            M[i,i-1] = -r
+            M[i,i] = sp
+            M[i,i+1] = -r
+        Minv  = np.linalg.inv(M)
+
+        u = np.zeros([self.config.Nt, self.config.Nx])
+
+        #Handle initial conditions:
+        if ics is not None:
+            u[0,:] = ics
+        else:
+            u[0,:] = self.problemConfig.backGroundTemp_K
+
+        #plt.figure(); plt.plot(u[0,:]); plt.title('IC u[0]')
+
+        B  = np.zeros(self.config.Nx)
+        for t in range(1,self.config.Nt):
+            q_bar = self._calcOhmicHeating( u[t-1] ) + self.config.appliedHeatingFunc_W(t)
+
+            if(t//1000 == 0):
+                print('Step: ', t , '/', self.config.Nt, 100.0*float(t) / float(self.config.Nt), '%')
+
+            #B[0]  = sn*u[t-1,0]  + 2*r*u[t-1, 1]
+            #B[-1] = sn*u[t-1,-1] + 2*r*u[t-1,-2]
+            #for i in range(1,self.config.Nx-1):
+            #    B[i] = r*u[t-1,i-1] + sn*u[t-1,i] + r*u[t-1,i+1]
+            #equivalent to loop above. caused 7x runtime improvement to not use loop here
+            B[1:-2] = r*u[t-1,0:-3] + sn*u[t-1,1:-2] + r*u[t-1,2:-1]
+
+            #Calculate next solution
+            u[t,:] = np.matmul(Minv, B ) #todo only need three elements multiplied ?
+            u[t,0] = ics[0]
+            u[t,-1] = ics[-1]
+        return u
+
+    def _calcOhmicHeating(self, uu):
+        #todo
+        ohmicHeating_W = np.zeros( self.config.Nx )
+
+        return ohmicHeating_W
+
+    def plotSolution(self):
+        pass
+
+
+#%%
+#N = 1000
+#qc = QuenchSolver_1d()
+#u0 = np.zeros(N); u0[N-1] = -2.0
+#x = np.linspace(0,1.0,998)
+#u0[1:(N-1)] = np.cos(np.pi * x) - 1.0
+#d = qc._laplacian(u0)
+#plt.figure(); plt.plot(u0); plt.plot(d, 'r')
+#qc = solveHeatEq_1D_ForwardEuler_2nd()
+#alpha = 1.1 #related to k and cable parameters which are all (dynamic in time)
+
+qc = solveHeatEq_1D_CrankNicholson_2nd()
+qc.config.Nt = 100
+N = qc.config.Nx
+
+#ics = np.cos(2.0*np.pi*np.linspace(0.0,1.0, qc.config.Nx)) - 1.0
+rOffInds = N//4
+lOffInds = N - N//4
+
+#1
+#ics = np.zeros(N)
+#ics[rOffInds:lOffInds] = np.cos(np.linspace(0,1,lOffInds - rOffInds) * 2*np.pi ) - 1.0
+#ics += (np.random.random(N) - .5)*.1
+
+#2
+#ics[rOffInds:lOffInds] = np.sin(np.linspace(0,1,lOffInds - rOffInds) * 2*np.pi ) #- 1.0
+
+
+#3
+#ics[rOffInds:lOffInds] = np.sin(np.linspace(0,1,lOffInds - rOffInds) * 2*np.pi ) #- 1.0
+#ics += 1.0*np.linspace(0,1.0,N)
+
+
+#4
+ics = (np.random.random(N) - .5)*.1
+
+
+u = qc.solve(ics)
+#%%
+plt.figure()
+for i in range(0,qc.config.Nt,qc.config.Nt//1):
+    plt.plot(u[i,:])
+#plt.ylim([-2,2])
+
+
+##############################################################################
+# #%%
+#     def solveHeatEq_1D_ForwardEuler_2nd(self, ics = None):
+#         """
+#         todo: store solution in a class
+        
+#         vvg
+        
+#         returns u[i,j] where i indexes time step and j space
+#         todo: return u, t, x for convenience 
+#         todo: this is only forward-difference, not Crank-Nicolson
+#         """
+#         u = np.zeros([self.config.Nt, self.config.Nx])
+
+#         if ics is not None:
+#             u[0,:] = ics
+#             icVal = ics[0]
+#         else:
+#             u[0,:] = self.problemConfig.backGroundTemp_K
+#             icVal  = self.problemConfig.backGroundTemp_K
+#         #plt.figure(); plt.plot(u[0,:]); plt.title('IC u[0]')
+
+#         for j in range(1,self.config.Nt):
+#             #todo check this is forward euler actually
+
+#             #laplacian only operatres on interior points
+#             u[j,:] = u[j-1,:] + alpha*self.config.dt_s *self._laplacian(u[j-1,:])
+#             u[j,0]  = icVal
+#             u[j,-1] = icVal
+#             #explicitly handle the BC's:
+#             #u[j,-1] = u[j-1, -1] + 2.0*self.config.dt_s * (+u[j-1,-2] - u[j-1,-1])/(self.config.dx_m*self.config.dx_m)
+
+#             #u[j, 0]  = u[j-1, 0] + 2.0*self.config.dt_s * ( u[j-1, 1] - u[j-1, 0])/(self.config.dx_m*self.config.dx_m)
+#             N = self.config.Nt
+#             epoc = 0
+#             if(j//(self.config.Nt) != epoc):
+#                 print('Step: ', j , '/', self.config.Nt )
+#                 epoc += 1
+#         return u
+
+#     def _getRHS(self, u, T, B):
+#         """
+#         returns: Right Hand Side of System Equation: 
+#                  d/dt u = alpha * d^2/dx^2 u + q / (m*Cp)
+#                  q(x) is the sum of ohmic heating and applied (parasitic) heating vs space
+#                  units of returned value are Kelvin/second
+#                  dtu is size [N]
+#         """
+#         #without self or applied heating
+#         dtu = alpha * self._laplacian(u)
+#         return dtu
+
+#     def _laplacian(self,u):
+#         bcVal = self.problemConfig.backGroundTemp_K
+#         N = self.config.Nx
+#         #todo: put this in an initialization and then don't need to do this each timestep, or at end
+
+#         #d^2 / dx^2 u[i] ~= (u[i-1] - 2u[i] + u[i+1]) / (2*DX^2)
+
+#         #0 = u[0-1] - 2u[0] + u[1]
+#         #if u[0-1] == u[0] (ie a ghost point) then
+#         #0 = (u[0] - 2u[0] + u[1])/2
+#         #0 = -u[0] + u[1]
+#         #u[0] = u[1]
+
+
+#         d2x = np.zeros(u.shape)
+
+#         #leftInds = 0:N-3
+#         #centerInds = 1:N-2
+#         #rightInds = 3:N-1
+#         d2x[1:(N-2)] = u[0:(N-3)] - 2*u[1:(N-2)] + u[2:(N-1)]
+#         d2x = d2x /  (  self.config.dx_m*self.config.dx_m )
+#         #print('max: ', np.max(np.abs(d2x) ) )
+#         #plt.figure(); plt.plot(d2x); plt.ylabel('d2x')
+
+#         return d2x
+
+
+
+#     def _calcOhmicHeating(self):
+#         if self.getAppliedHeatFunc_W == None:
+#             ohmicHeating_W = np.zeros( self.config.Nx )
+#         else:
+#             #Todo: implement 2D interpolation of source heat from
+#             #   either a custom setter function or static map
+#             ohmicHeating_W = np.zeros( self.config.Nx )
+
+#         return ohmicHeating_W
+
+#     def plotSolution(self):
+#         pass
+

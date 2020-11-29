@@ -1,0 +1,1497 @@
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccAnP0sL.s 			page 1
+
+
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"cymetadata.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.global	cy_metadata
+  20              		.global	cy_meta_flashprotect
+  21              		.global	cy_meta_wonvl
+  22              		.global	cy_meta_custnvl
+  23              		.global	cy_meta_configecc
+  24              		.section	.cyconfigecc,"a",%progbits
+  25              		.align	2
+  26              		.type	cy_meta_configecc, %object
+  27              		.size	cy_meta_configecc, 960
+  28              	cy_meta_configecc:
+  29 0000 02       		.byte	2
+  30 0001 52       		.byte	82
+  31 0002 00       		.byte	0
+  32 0003 40       		.byte	64
+  33 0004 01       		.byte	1
+  34 0005 64       		.byte	100
+  35 0006 00       		.byte	0
+  36 0007 40       		.byte	64
+  37 0008 02       		.byte	2
+  38 0009 65       		.byte	101
+  39 000a 00       		.byte	0
+  40 000b 40       		.byte	64
+  41 000c 01       		.byte	1
+  42 000d 07       		.byte	7
+  43 000e 01       		.byte	1
+  44 000f 40       		.byte	64
+  45 0010 52       		.byte	82
+  46 0011 08       		.byte	8
+  47 0012 01       		.byte	1
+  48 0013 40       		.byte	64
+  49 0014 31       		.byte	49
+  50 0015 09       		.byte	9
+  51 0016 01       		.byte	1
+  52 0017 40       		.byte	64
+  53 0018 0E       		.byte	14
+  54 0019 18       		.byte	24
+  55 001a 01       		.byte	1
+  56 001b 40       		.byte	64
+  57 001c 3F       		.byte	63
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccAnP0sL.s 			page 2
+
+
+  58 001d 19       		.byte	25
+  59 001e 01       		.byte	1
+  60 001f 40       		.byte	64
+  61 0020 44       		.byte	68
+  62 0021 1A       		.byte	26
+  63 0022 01       		.byte	1
+  64 0023 40       		.byte	64
+  65 0024 47       		.byte	71
+  66 0025 1B       		.byte	27
+  67 0026 01       		.byte	1
+  68 0027 40       		.byte	64
+  69 0028 02       		.byte	2
+  70 0029 40       		.byte	64
+  71 002a 01       		.byte	1
+  72 002b 40       		.byte	64
+  73 002c 01       		.byte	1
+  74 002d 41       		.byte	65
+  75 002e 01       		.byte	1
+  76 002f 40       		.byte	64
+  77 0030 01       		.byte	1
+  78 0031 42       		.byte	66
+  79 0032 01       		.byte	1
+  80 0033 40       		.byte	64
+  81 0034 03       		.byte	3
+  82 0035 43       		.byte	67
+  83 0036 01       		.byte	1
+  84 0037 40       		.byte	64
+  85 0038 06       		.byte	6
+  86 0039 4C       		.byte	76
+  87 003a 01       		.byte	1
+  88 003b 40       		.byte	64
+  89 003c 02       		.byte	2
+  90 003d 4D       		.byte	77
+  91 003e 01       		.byte	1
+  92 003f 40       		.byte	64
+  93 0040 04       		.byte	4
+  94 0041 50       		.byte	80
+  95 0042 01       		.byte	1
+  96 0043 40       		.byte	64
+  97 0044 01       		.byte	1
+  98 0045 51       		.byte	81
+  99 0046 01       		.byte	1
+ 100 0047 40       		.byte	64
+ 101 0048 09       		.byte	9
+ 102 0049 80       		.byte	-128
+ 103 004a 0C       		.byte	12
+ 104 004b 40       		.byte	64
+ 105 004c 88       		.byte	-120
+ 106 004d 38       		.byte	56
+ 107 004e 88       		.byte	-120
+ 108 004f 0F       		.byte	15
+ 109 0050 8B       		.byte	-117
+ 110 0051 72       		.byte	114
+ 111 0052 E6       		.byte	-26
+ 112 0053 02       		.byte	2
+ 113 0054 02       		.byte	2
+ 114 0055 20       		.byte	32
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccAnP0sL.s 			page 3
+
+
+ 115 0056 03       		.byte	3
+ 116 0057 10       		.byte	16
+ 117 0058 04       		.byte	4
+ 118 0059 10       		.byte	16
+ 119 005a 06       		.byte	6
+ 120 005b 0C       		.byte	12
+ 121 005c 07       		.byte	7
+ 122 005d 0A       		.byte	10
+ 123 005e 08       		.byte	8
+ 124 005f 1C       		.byte	28
+ 125 0060 09       		.byte	9
+ 126 0061 10       		.byte	16
+ 127 0062 0A       		.byte	10
+ 128 0063 02       		.byte	2
+ 129 0064 0F       		.byte	15
+ 130 0065 0C       		.byte	12
+ 131 0066 12       		.byte	18
+ 132 0067 03       		.byte	3
+ 133 0068 13       		.byte	19
+ 134 0069 02       		.byte	2
+ 135 006a 17       		.byte	23
+ 136 006b 06       		.byte	6
+ 137 006c 18       		.byte	24
+ 138 006d 14       		.byte	20
+ 139 006e 1B       		.byte	27
+ 140 006f 04       		.byte	4
+ 141 0070 1D       		.byte	29
+ 142 0071 01       		.byte	1
+ 143 0072 1E       		.byte	30
+ 144 0073 20       		.byte	32
+ 145 0074 20       		.byte	32
+ 146 0075 09       		.byte	9
+ 147 0076 22       		.byte	34
+ 148 0077 10       		.byte	16
+ 149 0078 24       		.byte	36
+ 150 0079 0C       		.byte	12
+ 151 007a 25       		.byte	37
+ 152 007b 10       		.byte	16
+ 153 007c 26       		.byte	38
+ 154 007d 11       		.byte	17
+ 155 007e 28       		.byte	40
+ 156 007f 10       		.byte	16
+ 157 0080 29       		.byte	41
+ 158 0081 0C       		.byte	12
+ 159 0082 2B       		.byte	43
+ 160 0083 02       		.byte	2
+ 161 0084 2F       		.byte	47
+ 162 0085 10       		.byte	16
+ 163 0086 30       		.byte	48
+ 164 0087 1F       		.byte	31
+ 165 0088 32       		.byte	50
+ 166 0089 20       		.byte	32
+ 167 008a 33       		.byte	51
+ 168 008b 01       		.byte	1
+ 169 008c 35       		.byte	53
+ 170 008d 0E       		.byte	14
+ 171 008e 37       		.byte	55
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccAnP0sL.s 			page 4
+
+
+ 172 008f 10       		.byte	16
+ 173 0090 39       		.byte	57
+ 174 0091 80       		.byte	-128
+ 175 0092 3B       		.byte	59
+ 176 0093 20       		.byte	32
+ 177 0094 3E       		.byte	62
+ 178 0095 04       		.byte	4
+ 179 0096 3F       		.byte	63
+ 180 0097 04       		.byte	4
+ 181 0098 40       		.byte	64
+ 182 0099 03       		.byte	3
+ 183 009a 47       		.byte	71
+ 184 009b 04       		.byte	4
+ 185 009c 49       		.byte	73
+ 186 009d FF       		.byte	-1
+ 187 009e 4A       		.byte	74
+ 188 009f 07       		.byte	7
+ 189 00a0 4B       		.byte	75
+ 190 00a1 FF       		.byte	-1
+ 191 00a2 4C       		.byte	76
+ 192 00a3 40       		.byte	64
+ 193 00a4 4D       		.byte	77
+ 194 00a5 20       		.byte	32
+ 195 00a6 4E       		.byte	78
+ 196 00a7 F0       		.byte	-16
+ 197 00a8 4F       		.byte	79
+ 198 00a9 05       		.byte	5
+ 199 00aa 50       		.byte	80
+ 200 00ab 08       		.byte	8
+ 201 00ac 54       		.byte	84
+ 202 00ad 18       		.byte	24
+ 203 00ae 56       		.byte	86
+ 204 00af 04       		.byte	4
+ 205 00b0 58       		.byte	88
+ 206 00b1 04       		.byte	4
+ 207 00b2 59       		.byte	89
+ 208 00b3 04       		.byte	4
+ 209 00b4 5A       		.byte	90
+ 210 00b5 04       		.byte	4
+ 211 00b6 5B       		.byte	91
+ 212 00b7 04       		.byte	4
+ 213 00b8 5F       		.byte	95
+ 214 00b9 01       		.byte	1
+ 215 00ba 60       		.byte	96
+ 216 00bb 40       		.byte	64
+ 217 00bc 61       		.byte	97
+ 218 00bd A8       		.byte	-88
+ 219 00be 62       		.byte	98
+ 220 00bf 40       		.byte	64
+ 221 00c0 63       		.byte	99
+ 222 00c1 20       		.byte	32
+ 223 00c2 81       		.byte	-127
+ 224 00c3 08       		.byte	8
+ 225 00c4 84       		.byte	-124
+ 226 00c5 01       		.byte	1
+ 227 00c6 85       		.byte	-123
+ 228 00c7 04       		.byte	4
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccAnP0sL.s 			page 5
+
+
+ 229 00c8 86       		.byte	-122
+ 230 00c9 06       		.byte	6
+ 231 00ca 88       		.byte	-120
+ 232 00cb 0C       		.byte	12
+ 233 00cc 89       		.byte	-119
+ 234 00cd 02       		.byte	2
+ 235 00ce 8A       		.byte	-118
+ 236 00cf 03       		.byte	3
+ 237 00d0 8B       		.byte	-117
+ 238 00d1 01       		.byte	1
+ 239 00d2 8E       		.byte	-114
+ 240 00d3 03       		.byte	3
+ 241 00d4 95       		.byte	-107
+ 242 00d5 03       		.byte	3
+ 243 00d6 99       		.byte	-103
+ 244 00d7 03       		.byte	3
+ 245 00d8 A4       		.byte	-92
+ 246 00d9 01       		.byte	1
+ 247 00da A5       		.byte	-91
+ 248 00db 04       		.byte	4
+ 249 00dc A6       		.byte	-90
+ 250 00dd 0E       		.byte	14
+ 251 00de AA       		.byte	-86
+ 252 00df 08       		.byte	8
+ 253 00e0 AB       		.byte	-85
+ 254 00e1 04       		.byte	4
+ 255 00e2 AD       		.byte	-83
+ 256 00e3 01       		.byte	1
+ 257 00e4 AE       		.byte	-82
+ 258 00e5 0C       		.byte	12
+ 259 00e6 AF       		.byte	-81
+ 260 00e7 02       		.byte	2
+ 261 00e8 B1       		.byte	-79
+ 262 00e9 0C       		.byte	12
+ 263 00ea B2       		.byte	-78
+ 264 00eb 0F       		.byte	15
+ 265 00ec B3       		.byte	-77
+ 266 00ed 03       		.byte	3
+ 267 00ee B9       		.byte	-71
+ 268 00ef 02       		.byte	2
+ 269 00f0 BA       		.byte	-70
+ 270 00f1 08       		.byte	8
+ 271 00f2 D8       		.byte	-40
+ 272 00f3 04       		.byte	4
+ 273 00f4 D9       		.byte	-39
+ 274 00f5 04       		.byte	4
+ 275 00f6 DF       		.byte	-33
+ 276 00f7 01       		.byte	1
+ 277 00f8 00       		.byte	0
+ 278 00f9 14       		.byte	20
+ 279 00fa 02       		.byte	2
+ 280 00fb 01       		.byte	1
+ 281 00fc 03       		.byte	3
+ 282 00fd 01       		.byte	1
+ 283 00fe 04       		.byte	4
+ 284 00ff 26       		.byte	38
+ 285 0100 0E       		.byte	14
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccAnP0sL.s 			page 6
+
+
+ 286 0101 80       		.byte	-128
+ 287 0102 0F       		.byte	15
+ 288 0103 06       		.byte	6
+ 289 0104 12       		.byte	18
+ 290 0105 06       		.byte	6
+ 291 0106 13       		.byte	19
+ 292 0107 08       		.byte	8
+ 293 0108 15       		.byte	21
+ 294 0109 02       		.byte	2
+ 295 010a 16       		.byte	22
+ 296 010b 04       		.byte	4
+ 297 010c 17       		.byte	23
+ 298 010d 18       		.byte	24
+ 299 010e 18       		.byte	24
+ 300 010f 30       		.byte	48
+ 301 0110 1B       		.byte	27
+ 302 0111 08       		.byte	8
+ 303 0112 1E       		.byte	30
+ 304 0113 80       		.byte	-128
+ 305 0114 1F       		.byte	31
+ 306 0115 04       		.byte	4
+ 307 0116 20       		.byte	32
+ 308 0117 80       		.byte	-128
+ 309 0118 21       		.byte	33
+ 310 0119 01       		.byte	1
+ 311 011a 22       		.byte	34
+ 312 011b 02       		.byte	2
+ 313 011c 23       		.byte	35
+ 314 011d 10       		.byte	16
+ 315 011e 24       		.byte	36
+ 316 011f 0A       		.byte	10
+ 317 0120 27       		.byte	39
+ 318 0121 28       		.byte	40
+ 319 0122 29       		.byte	41
+ 320 0123 80       		.byte	-128
+ 321 0124 2A       		.byte	42
+ 322 0125 08       		.byte	8
+ 323 0126 2B       		.byte	43
+ 324 0127 08       		.byte	8
+ 325 0128 2D       		.byte	45
+ 326 0129 08       		.byte	8
+ 327 012a 2E       		.byte	46
+ 328 012b 40       		.byte	64
+ 329 012c 2F       		.byte	47
+ 330 012d 08       		.byte	8
+ 331 012e 30       		.byte	48
+ 332 012f 28       		.byte	40
+ 333 0130 36       		.byte	54
+ 334 0131 40       		.byte	64
+ 335 0132 37       		.byte	55
+ 336 0133 19       		.byte	25
+ 337 0134 38       		.byte	56
+ 338 0135 08       		.byte	8
+ 339 0136 3A       		.byte	58
+ 340 0137 01       		.byte	1
+ 341 0138 3B       		.byte	59
+ 342 0139 10       		.byte	16
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccAnP0sL.s 			page 7
+
+
+ 343 013a 3C       		.byte	60
+ 344 013b 84       		.byte	-124
+ 345 013c 3E       		.byte	62
+ 346 013d 2A       		.byte	42
+ 347 013e 45       		.byte	69
+ 348 013f 08       		.byte	8
+ 349 0140 56       		.byte	86
+ 350 0141 05       		.byte	5
+ 351 0142 5C       		.byte	92
+ 352 0143 01       		.byte	1
+ 353 0144 67       		.byte	103
+ 354 0145 4A       		.byte	74
+ 355 0146 87       		.byte	-121
+ 356 0147 40       		.byte	64
+ 357 0148 C0       		.byte	-64
+ 358 0149 77       		.byte	119
+ 359 014a C2       		.byte	-62
+ 360 014b D0       		.byte	-48
+ 361 014c C4       		.byte	-60
+ 362 014d 77       		.byte	119
+ 363 014e CA       		.byte	-54
+ 364 014f 7E       		.byte	126
+ 365 0150 CC       		.byte	-52
+ 366 0151 F6       		.byte	-10
+ 367 0152 CE       		.byte	-50
+ 368 0153 F7       		.byte	-9
+ 369 0154 D0       		.byte	-48
+ 370 0155 40       		.byte	64
+ 371 0156 D6       		.byte	-42
+ 372 0157 80       		.byte	-128
+ 373 0158 D8       		.byte	-40
+ 374 0159 B0       		.byte	-80
+ 375 015a 83       		.byte	-125
+ 376 015b 08       		.byte	8
+ 377 015c 85       		.byte	-123
+ 378 015d 03       		.byte	3
+ 379 015e 87       		.byte	-121
+ 380 015f 04       		.byte	4
+ 381 0160 89       		.byte	-119
+ 382 0161 0A       		.byte	10
+ 383 0162 8B       		.byte	-117
+ 384 0163 04       		.byte	4
+ 385 0164 99       		.byte	-103
+ 386 0165 03       		.byte	3
+ 387 0166 9B       		.byte	-101
+ 388 0167 0C       		.byte	12
+ 389 0168 A3       		.byte	-93
+ 390 0169 05       		.byte	5
+ 391 016a A5       		.byte	-91
+ 392 016b 03       		.byte	3
+ 393 016c A7       		.byte	-89
+ 394 016d 04       		.byte	4
+ 395 016e B5       		.byte	-75
+ 396 016f 0F       		.byte	15
+ 397 0170 BB       		.byte	-69
+ 398 0171 20       		.byte	32
+ 399 0172 D9       		.byte	-39
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccAnP0sL.s 			page 8
+
+
+ 400 0173 04       		.byte	4
+ 401 0174 DF       		.byte	-33
+ 402 0175 01       		.byte	1
+ 403 0176 04       		.byte	4
+ 404 0177 20       		.byte	32
+ 405 0178 05       		.byte	5
+ 406 0179 0E       		.byte	14
+ 407 017a 07       		.byte	7
+ 408 017b 20       		.byte	32
+ 409 017c 0C       		.byte	12
+ 410 017d 90       		.byte	-112
+ 411 017e 0E       		.byte	14
+ 412 017f 64       		.byte	100
+ 413 0180 15       		.byte	21
+ 414 0181 24       		.byte	36
+ 415 0182 16       		.byte	22
+ 416 0183 01       		.byte	1
+ 417 0184 17       		.byte	23
+ 418 0185 09       		.byte	9
+ 419 0186 1D       		.byte	29
+ 420 0187 08       		.byte	8
+ 421 0188 1E       		.byte	30
+ 422 0189 0A       		.byte	10
+ 423 018a 1F       		.byte	31
+ 424 018b 01       		.byte	1
+ 425 018c 20       		.byte	32
+ 426 018d 04       		.byte	4
+ 427 018e 21       		.byte	33
+ 428 018f 30       		.byte	48
+ 429 0190 24       		.byte	36
+ 430 0191 01       		.byte	1
+ 431 0192 25       		.byte	37
+ 432 0193 14       		.byte	20
+ 433 0194 27       		.byte	39
+ 434 0195 50       		.byte	80
+ 435 0196 28       		.byte	40
+ 436 0197 20       		.byte	32
+ 437 0198 2A       		.byte	42
+ 438 0199 01       		.byte	1
+ 439 019a 2D       		.byte	45
+ 440 019b 80       		.byte	-128
+ 441 019c 2F       		.byte	47
+ 442 019d 28       		.byte	40
+ 443 019e 31       		.byte	49
+ 444 019f 20       		.byte	32
+ 445 01a0 34       		.byte	52
+ 446 01a1 10       		.byte	16
+ 447 01a2 35       		.byte	53
+ 448 01a3 04       		.byte	4
+ 449 01a4 36       		.byte	54
+ 450 01a5 02       		.byte	2
+ 451 01a6 38       		.byte	56
+ 452 01a7 20       		.byte	32
+ 453 01a8 39       		.byte	57
+ 454 01a9 06       		.byte	6
+ 455 01aa 3D       		.byte	61
+ 456 01ab 08       		.byte	8
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccAnP0sL.s 			page 9
+
+
+ 457 01ac 3E       		.byte	62
+ 458 01ad 42       		.byte	66
+ 459 01ae 3F       		.byte	63
+ 460 01af 10       		.byte	16
+ 461 01b0 44       		.byte	68
+ 462 01b1 10       		.byte	16
+ 463 01b2 46       		.byte	70
+ 464 01b3 20       		.byte	32
+ 465 01b4 47       		.byte	71
+ 466 01b5 61       		.byte	97
+ 467 01b6 4C       		.byte	76
+ 468 01b7 80       		.byte	-128
+ 469 01b8 4E       		.byte	78
+ 470 01b9 03       		.byte	3
+ 471 01ba 57       		.byte	87
+ 472 01bb 01       		.byte	1
+ 473 01bc 5C       		.byte	92
+ 474 01bd 20       		.byte	32
+ 475 01be 5D       		.byte	93
+ 476 01bf 02       		.byte	2
+ 477 01c0 5E       		.byte	94
+ 478 01c1 08       		.byte	8
+ 479 01c2 5F       		.byte	95
+ 480 01c3 40       		.byte	64
+ 481 01c4 90       		.byte	-112
+ 482 01c5 20       		.byte	32
+ 483 01c6 91       		.byte	-111
+ 484 01c7 02       		.byte	2
+ 485 01c8 93       		.byte	-109
+ 486 01c9 10       		.byte	16
+ 487 01ca 94       		.byte	-108
+ 488 01cb 05       		.byte	5
+ 489 01cc 96       		.byte	-106
+ 490 01cd 40       		.byte	64
+ 491 01ce 97       		.byte	-105
+ 492 01cf 06       		.byte	6
+ 493 01d0 9A       		.byte	-102
+ 494 01d1 01       		.byte	1
+ 495 01d2 9B       		.byte	-101
+ 496 01d3 08       		.byte	8
+ 497 01d4 9D       		.byte	-99
+ 498 01d5 88       		.byte	-120
+ 499 01d6 9E       		.byte	-98
+ 500 01d7 22       		.byte	34
+ 501 01d8 A4       		.byte	-92
+ 502 01d9 28       		.byte	40
+ 503 01da A5       		.byte	-91
+ 504 01db 08       		.byte	8
+ 505 01dc A7       		.byte	-89
+ 506 01dd 01       		.byte	1
+ 507 01de AF       		.byte	-81
+ 508 01df 20       		.byte	32
+ 509 01e0 C0       		.byte	-64
+ 510 01e1 70       		.byte	112
+ 511 01e2 C2       		.byte	-62
+ 512 01e3 F0       		.byte	-16
+ 513 01e4 C4       		.byte	-60
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccAnP0sL.s 			page 10
+
+
+ 514 01e5 F0       		.byte	-16
+ 515 01e6 CA       		.byte	-54
+ 516 01e7 73       		.byte	115
+ 517 01e8 CC       		.byte	-52
+ 518 01e9 E4       		.byte	-28
+ 519 01ea CE       		.byte	-50
+ 520 01eb F7       		.byte	-9
+ 521 01ec D0       		.byte	-48
+ 522 01ed F0       		.byte	-16
+ 523 01ee D2       		.byte	-46
+ 524 01ef 10       		.byte	16
+ 525 01f0 D6       		.byte	-42
+ 526 01f1 F0       		.byte	-16
+ 527 01f2 E8       		.byte	-24
+ 528 01f3 02       		.byte	2
+ 529 01f4 05       		.byte	5
+ 530 01f5 01       		.byte	1
+ 531 01f6 0B       		.byte	11
+ 532 01f7 01       		.byte	1
+ 533 01f8 19       		.byte	25
+ 534 01f9 01       		.byte	1
+ 535 01fa 23       		.byte	35
+ 536 01fb 01       		.byte	1
+ 537 01fc 24       		.byte	36
+ 538 01fd 01       		.byte	1
+ 539 01fe 27       		.byte	39
+ 540 01ff 01       		.byte	1
+ 541 0200 28       		.byte	40
+ 542 0201 01       		.byte	1
+ 543 0202 2C       		.byte	44
+ 544 0203 01       		.byte	1
+ 545 0204 31       		.byte	49
+ 546 0205 01       		.byte	1
+ 547 0206 36       		.byte	54
+ 548 0207 01       		.byte	1
+ 549 0208 3F       		.byte	63
+ 550 0209 01       		.byte	1
+ 551 020a 58       		.byte	88
+ 552 020b 04       		.byte	4
+ 553 020c 59       		.byte	89
+ 554 020d 04       		.byte	4
+ 555 020e 5F       		.byte	95
+ 556 020f 01       		.byte	1
+ 557 0210 82       		.byte	-126
+ 558 0211 13       		.byte	19
+ 559 0212 84       		.byte	-124
+ 560 0213 0C       		.byte	12
+ 561 0214 85       		.byte	-123
+ 562 0215 08       		.byte	8
+ 563 0216 88       		.byte	-120
+ 564 0217 04       		.byte	4
+ 565 0218 8B       		.byte	-117
+ 566 0219 04       		.byte	4
+ 567 021a 8C       		.byte	-116
+ 568 021b 01       		.byte	1
+ 569 021c 8D       		.byte	-115
+ 570 021d 1C       		.byte	28
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccAnP0sL.s 			page 11
+
+
+ 571 021e 8F       		.byte	-113
+ 572 021f 21       		.byte	33
+ 573 0220 90       		.byte	-112
+ 574 0221 0F       		.byte	15
+ 575 0222 92       		.byte	-110
+ 576 0223 10       		.byte	16
+ 577 0224 94       		.byte	-108
+ 578 0225 02       		.byte	2
+ 579 0226 95       		.byte	-107
+ 580 0227 27       		.byte	39
+ 581 0228 97       		.byte	-105
+ 582 0229 18       		.byte	24
+ 583 022a 98       		.byte	-104
+ 584 022b 1F       		.byte	31
+ 585 022c 99       		.byte	-103
+ 586 022d 3C       		.byte	60
+ 587 022e 9B       		.byte	-101
+ 588 022f 02       		.byte	2
+ 589 0230 9C       		.byte	-100
+ 590 0231 08       		.byte	8
+ 591 0232 9F       		.byte	-97
+ 592 0233 23       		.byte	35
+ 593 0234 A1       		.byte	-95
+ 594 0235 10       		.byte	16
+ 595 0236 A4       		.byte	-92
+ 596 0237 0C       		.byte	12
+ 597 0238 A5       		.byte	-91
+ 598 0239 3F       		.byte	63
+ 599 023a A6       		.byte	-90
+ 600 023b 13       		.byte	19
+ 601 023c A8       		.byte	-88
+ 602 023d 03       		.byte	3
+ 603 023e A9       		.byte	-87
+ 604 023f 18       		.byte	24
+ 605 0240 AC       		.byte	-84
+ 606 0241 13       		.byte	19
+ 607 0242 AD       		.byte	-83
+ 608 0243 04       		.byte	4
+ 609 0244 AE       		.byte	-82
+ 610 0245 0C       		.byte	12
+ 611 0246 B0       		.byte	-80
+ 612 0247 1C       		.byte	28
+ 613 0248 B2       		.byte	-78
+ 614 0249 0F       		.byte	15
+ 615 024a B5       		.byte	-75
+ 616 024b 1F       		.byte	31
+ 617 024c B7       		.byte	-73
+ 618 024d 38       		.byte	56
+ 619 024e BA       		.byte	-70
+ 620 024f 2A       		.byte	42
+ 621 0250 BB       		.byte	-69
+ 622 0251 20       		.byte	32
+ 623 0252 C0       		.byte	-64
+ 624 0253 31       		.byte	49
+ 625 0254 C1       		.byte	-63
+ 626 0255 02       		.byte	2
+ 627 0256 C5       		.byte	-59
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccAnP0sL.s 			page 12
+
+
+ 628 0257 EB       		.byte	-21
+ 629 0258 C6       		.byte	-58
+ 630 0259 C0       		.byte	-64
+ 631 025a C8       		.byte	-56
+ 632 025b 0B       		.byte	11
+ 633 025c C9       		.byte	-55
+ 634 025d FF       		.byte	-1
+ 635 025e CA       		.byte	-54
+ 636 025f FF       		.byte	-1
+ 637 0260 CB       		.byte	-53
+ 638 0261 FF       		.byte	-1
+ 639 0262 CE       		.byte	-50
+ 640 0263 F0       		.byte	-16
+ 641 0264 CF       		.byte	-49
+ 642 0265 44       		.byte	68
+ 643 0266 D0       		.byte	-48
+ 644 0267 0C       		.byte	12
+ 645 0268 D6       		.byte	-42
+ 646 0269 02       		.byte	2
+ 647 026a D7       		.byte	-41
+ 648 026b 13       		.byte	19
+ 649 026c D8       		.byte	-40
+ 650 026d 04       		.byte	4
+ 651 026e D9       		.byte	-39
+ 652 026f 04       		.byte	4
+ 653 0270 DA       		.byte	-38
+ 654 0271 04       		.byte	4
+ 655 0272 DB       		.byte	-37
+ 656 0273 04       		.byte	4
+ 657 0274 DF       		.byte	-33
+ 658 0275 01       		.byte	1
+ 659 0276 E6       		.byte	-26
+ 660 0277 C0       		.byte	-64
+ 661 0278 EA       		.byte	-22
+ 662 0279 40       		.byte	64
+ 663 027a EB       		.byte	-21
+ 664 027b 02       		.byte	2
+ 665 027c 04       		.byte	4
+ 666 027d 02       		.byte	2
+ 667 027e 05       		.byte	5
+ 668 027f 80       		.byte	-128
+ 669 0280 06       		.byte	6
+ 670 0281 08       		.byte	8
+ 671 0282 07       		.byte	7
+ 672 0283 20       		.byte	32
+ 673 0284 0C       		.byte	12
+ 674 0285 80       		.byte	-128
+ 675 0286 0E       		.byte	14
+ 676 0287 44       		.byte	68
+ 677 0288 0F       		.byte	15
+ 678 0289 10       		.byte	16
+ 679 028a 10       		.byte	16
+ 680 028b 2A       		.byte	42
+ 681 028c 17       		.byte	23
+ 682 028d 54       		.byte	84
+ 683 028e 18       		.byte	24
+ 684 028f 02       		.byte	2
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccAnP0sL.s 			page 13
+
+
+ 685 0290 19       		.byte	25
+ 686 0291 40       		.byte	64
+ 687 0292 1A       		.byte	26
+ 688 0293 02       		.byte	2
+ 689 0294 1D       		.byte	29
+ 690 0295 04       		.byte	4
+ 691 0296 1E       		.byte	30
+ 692 0297 44       		.byte	68
+ 693 0298 23       		.byte	35
+ 694 0299 40       		.byte	64
+ 695 029a 26       		.byte	38
+ 696 029b 10       		.byte	16
+ 697 029c 27       		.byte	39
+ 698 029d 05       		.byte	5
+ 699 029e 28       		.byte	40
+ 700 029f 20       		.byte	32
+ 701 02a0 2A       		.byte	42
+ 702 02a1 01       		.byte	1
+ 703 02a2 2B       		.byte	43
+ 704 02a3 10       		.byte	16
+ 705 02a4 2C       		.byte	44
+ 706 02a5 80       		.byte	-128
+ 707 02a6 2D       		.byte	45
+ 708 02a7 80       		.byte	-128
+ 709 02a8 2E       		.byte	46
+ 710 02a9 24       		.byte	36
+ 711 02aa 30       		.byte	48
+ 712 02ab 10       		.byte	16
+ 713 02ac 31       		.byte	49
+ 714 02ad 20       		.byte	32
+ 715 02ae 35       		.byte	53
+ 716 02af 44       		.byte	68
+ 717 02b0 36       		.byte	54
+ 718 02b1 10       		.byte	16
+ 719 02b2 38       		.byte	56
+ 720 02b3 20       		.byte	32
+ 721 02b4 39       		.byte	57
+ 722 02b5 04       		.byte	4
+ 723 02b6 3A       		.byte	58
+ 724 02b7 04       		.byte	4
+ 725 02b8 3D       		.byte	61
+ 726 02b9 20       		.byte	32
+ 727 02ba 3E       		.byte	62
+ 728 02bb 48       		.byte	72
+ 729 02bc 44       		.byte	68
+ 730 02bd 10       		.byte	16
+ 731 02be 46       		.byte	70
+ 732 02bf 05       		.byte	5
+ 733 02c0 4D       		.byte	77
+ 734 02c1 02       		.byte	2
+ 735 02c2 4F       		.byte	79
+ 736 02c3 04       		.byte	4
+ 737 02c4 57       		.byte	87
+ 738 02c5 10       		.byte	16
+ 739 02c6 5E       		.byte	94
+ 740 02c7 02       		.byte	2
+ 741 02c8 6C       		.byte	108
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccAnP0sL.s 			page 14
+
+
+ 742 02c9 2A       		.byte	42
+ 743 02ca 6F       		.byte	111
+ 744 02cb 28       		.byte	40
+ 745 02cc 74       		.byte	116
+ 746 02cd 80       		.byte	-128
+ 747 02ce 76       		.byte	118
+ 748 02cf 28       		.byte	40
+ 749 02d0 77       		.byte	119
+ 750 02d1 20       		.byte	32
+ 751 02d2 81       		.byte	-127
+ 752 02d3 04       		.byte	4
+ 753 02d4 83       		.byte	-125
+ 754 02d5 40       		.byte	64
+ 755 02d6 90       		.byte	-112
+ 756 02d7 20       		.byte	32
+ 757 02d8 91       		.byte	-111
+ 758 02d9 04       		.byte	4
+ 759 02da 93       		.byte	-109
+ 760 02db 10       		.byte	16
+ 761 02dc 96       		.byte	-106
+ 762 02dd 46       		.byte	70
+ 763 02de 97       		.byte	-105
+ 764 02df 44       		.byte	68
+ 765 02e0 99       		.byte	-103
+ 766 02e1 80       		.byte	-128
+ 767 02e2 9A       		.byte	-102
+ 768 02e3 01       		.byte	1
+ 769 02e4 9B       		.byte	-101
+ 770 02e5 10       		.byte	16
+ 771 02e6 9C       		.byte	-100
+ 772 02e7 20       		.byte	32
+ 773 02e8 9D       		.byte	-99
+ 774 02e9 06       		.byte	6
+ 775 02ea 9F       		.byte	-97
+ 776 02eb 01       		.byte	1
+ 777 02ec A1       		.byte	-95
+ 778 02ed 30       		.byte	48
+ 779 02ee A2       		.byte	-94
+ 780 02ef 01       		.byte	1
+ 781 02f0 A4       		.byte	-92
+ 782 02f1 28       		.byte	40
+ 783 02f2 A6       		.byte	-90
+ 784 02f3 10       		.byte	16
+ 785 02f4 A7       		.byte	-89
+ 786 02f5 28       		.byte	40
+ 787 02f6 B2       		.byte	-78
+ 788 02f7 12       		.byte	18
+ 789 02f8 B5       		.byte	-75
+ 790 02f9 80       		.byte	-128
+ 791 02fa C0       		.byte	-64
+ 792 02fb F0       		.byte	-16
+ 793 02fc C2       		.byte	-62
+ 794 02fd F0       		.byte	-16
+ 795 02fe C4       		.byte	-60
+ 796 02ff E7       		.byte	-25
+ 797 0300 CA       		.byte	-54
+ 798 0301 F3       		.byte	-13
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccAnP0sL.s 			page 15
+
+
+ 799 0302 CC       		.byte	-52
+ 800 0303 74       		.byte	116
+ 801 0304 CE       		.byte	-50
+ 802 0305 76       		.byte	118
+ 803 0306 D0       		.byte	-48
+ 804 0307 70       		.byte	112
+ 805 0308 D6       		.byte	-42
+ 806 0309 80       		.byte	-128
+ 807 030a 32       		.byte	50
+ 808 030b 20       		.byte	32
+ 809 030c CC       		.byte	-52
+ 810 030d 10       		.byte	16
+ 811 030e A6       		.byte	-90
+ 812 030f 20       		.byte	32
+ 813 0310 A6       		.byte	-90
+ 814 0311 20       		.byte	32
+ 815 0312 86       		.byte	-122
+ 816 0313 20       		.byte	32
+ 817 0314 A6       		.byte	-90
+ 818 0315 20       		.byte	32
+ 819 0316 E6       		.byte	-26
+ 820 0317 40       		.byte	64
+ 821 0318 09       		.byte	9
+ 822 0319 20       		.byte	32
+ 823 031a 62       		.byte	98
+ 824 031b 02       		.byte	2
+ 825 031c A2       		.byte	-94
+ 826 031d 02       		.byte	2
+ 827 031e AE       		.byte	-82
+ 828 031f 02       		.byte	2
+ 829 0320 C2       		.byte	-62
+ 830 0321 02       		.byte	2
+ 831 0322 D8       		.byte	-40
+ 832 0323 02       		.byte	2
+ 833 0324 B5       		.byte	-75
+ 834 0325 20       		.byte	32
+ 835 0326 EE       		.byte	-18
+ 836 0327 02       		.byte	2
+ 837 0328 00       		.byte	0
+ 838 0329 01       		.byte	1
+ 839 032a 0C       		.byte	12
+ 840 032b 01       		.byte	1
+ 841 032c 10       		.byte	16
+ 842 032d 01       		.byte	1
+ 843 032e 1C       		.byte	28
+ 844 032f 01       		.byte	1
+ 845 0330 00       		.byte	0
+ 846 0331 03       		.byte	3
+ 847 0332 00       		.byte	0
+ 848 0333 00       		.byte	0
+ 849 0334 10       		.byte	16
+ 850 0335 00       		.byte	0
+ 851 0336 00       		.byte	0
+ 852 0337 18       		.byte	24
+ 853 0338 01       		.byte	1
+ 854 0339 19       		.byte	25
+ 855 033a 00       		.byte	0
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccAnP0sL.s 			page 16
+
+
+ 856 033b 46       		.byte	70
+ 857 033c 08       		.byte	8
+ 858 033d 14       		.byte	20
+ 859 033e 00       		.byte	0
+ 860 033f 81       		.byte	-127
+ 861 0340 00       		.byte	0
+ 862 0341 00       		.byte	0
+ 863 0342 00       		.byte	0
+ 864 0343 18       		.byte	24
+ 865 0344 01       		.byte	1
+ 866 0345 00       		.byte	0
+ 867 0346 00       		.byte	0
+ 868 0347 18       		.byte	24
+ 869 0348 01       		.byte	1
+ 870 0349 18       		.byte	24
+ 871 034a 00       		.byte	0
+ 872 034b 00       		.byte	0
+ 873 034c 01       		.byte	1
+ 874 034d 18       		.byte	24
+ 875 034e 00       		.byte	0
+ 876 034f 00       		.byte	0
+ 877 0350 00       		.byte	0
+ 878 0351 00       		.byte	0
+ 879 0352 02       		.byte	2
+ 880 0353 00       		.byte	0
+ 881 0354 00       		.byte	0
+ 882 0355 00       		.byte	0
+ 883 0356 02       		.byte	2
+ 884 0357 00       		.byte	0
+ 885 0358 0C       		.byte	12
+ 886 0359 07       		.byte	7
+ 887 035a 00       		.byte	0
+ 888 035b 00       		.byte	0
+ 889 035c 0C       		.byte	12
+ 890 035d 07       		.byte	7
+ 891 035e 00       		.byte	0
+ 892 035f 00       		.byte	0
+ 893 0360 00       		.byte	0
+ 894 0361 0A       		.byte	10
+ 895 0362 04       		.byte	4
+ 896 0363 A1       		.byte	-95
+ 897 0364 02       		.byte	2
+ 898 0365 C0       		.byte	-64
+ 899 0366 0C       		.byte	12
+ 900 0367 07       		.byte	7
+ 901 0368 10       		.byte	16
+ 902 0369 20       		.byte	32
+ 903 036a 01       		.byte	1
+ 904 036b 18       		.byte	24
+ 905 036c 08       		.byte	8
+ 906 036d 00       		.byte	0
+ 907 036e 00       		.byte	0
+ 908 036f 00       		.byte	0
+ 909 0370 00       		.byte	0
+ 910 0371 00       		.byte	0
+ 911 0372 55       		.byte	85
+ 912 0373 01       		.byte	1
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccAnP0sL.s 			page 17
+
+
+ 913 0374 25       		.byte	37
+ 914 0375 03       		.byte	3
+ 915 0376 04       		.byte	4
+ 916 0377 00       		.byte	0
+ 917 0378 01       		.byte	1
+ 918 0379 C0       		.byte	-64
+ 919 037a 00       		.byte	0
+ 920 037b E0       		.byte	-32
+ 921 037c 22       		.byte	34
+ 922 037d FF       		.byte	-1
+ 923 037e FF       		.byte	-1
+ 924 037f FF       		.byte	-1
+ 925 0380 62       		.byte	98
+ 926 0381 A0       		.byte	-96
+ 927 0382 F0       		.byte	-16
+ 928 0383 41       		.byte	65
+ 929 0384 0C       		.byte	12
+ 930 0385 00       		.byte	0
+ 931 0386 00       		.byte	0
+ 932 0387 00       		.byte	0
+ 933 0388 01       		.byte	1
+ 934 0389 00       		.byte	0
+ 935 038a 00       		.byte	0
+ 936 038b 00       		.byte	0
+ 937 038c 04       		.byte	4
+ 938 038d 04       		.byte	4
+ 939 038e 04       		.byte	4
+ 940 038f 04       		.byte	4
+ 941 0390 00       		.byte	0
+ 942 0391 00       		.byte	0
+ 943 0392 00       		.byte	0
+ 944 0393 01       		.byte	1
+ 945 0394 00       		.byte	0
+ 946 0395 00       		.byte	0
+ 947 0396 00       		.byte	0
+ 948 0397 00       		.byte	0
+ 949 0398 00       		.byte	0
+ 950 0399 00       		.byte	0
+ 951 039a 40       		.byte	64
+ 952 039b 02       		.byte	2
+ 953 039c 00       		.byte	0
+ 954 039d 10       		.byte	16
+ 955 039e 30       		.byte	48
+ 956 039f 10       		.byte	16
+ 957 03a0 00       		.byte	0
+ 958 03a1 10       		.byte	16
+ 959 03a2 10       		.byte	16
+ 960 03a3 12       		.byte	18
+ 961 03a4 00       		.byte	0
+ 962 03a5 00       		.byte	0
+ 963 03a6 00       		.byte	0
+ 964 03a7 00       		.byte	0
+ 965 03a8 00       		.byte	0
+ 966 03a9 00       		.byte	0
+ 967 03aa 00       		.byte	0
+ 968 03ab 00       		.byte	0
+ 969 03ac 00       		.byte	0
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccAnP0sL.s 			page 18
+
+
+ 970 03ad 00       		.byte	0
+ 971 03ae 00       		.byte	0
+ 972 03af 00       		.byte	0
+ 973 03b0 00       		.byte	0
+ 974 03b1 00       		.byte	0
+ 975 03b2 00       		.byte	0
+ 976 03b3 00       		.byte	0
+ 977 03b4 80       		.byte	-128
+ 978 03b5 00       		.byte	0
+ 979 03b6 40       		.byte	64
+ 980 03b7 8B       		.byte	-117
+ 981 03b8 8B       		.byte	-117
+ 982 03b9 00       		.byte	0
+ 983 03ba 80       		.byte	-128
+ 984 03bb 00       		.byte	0
+ 985 03bc 00       		.byte	0
+ 986 03bd 00       		.byte	0
+ 987 03be 00       		.byte	0
+ 988 03bf 00       		.byte	0
+ 989              		.section	.cywolatch,"a",%progbits
+ 990              		.align	2
+ 991              		.type	cy_meta_wonvl, %object
+ 992              		.size	cy_meta_wonvl, 4
+ 993              	cy_meta_wonvl:
+ 994 0000 BC       		.byte	-68
+ 995 0001 90       		.byte	-112
+ 996 0002 AC       		.byte	-84
+ 997 0003 AF       		.byte	-81
+ 998              		.section	.cycustnvl,"a",%progbits
+ 999              		.align	2
+ 1000              		.type	cy_meta_custnvl, %object
+ 1001              		.size	cy_meta_custnvl, 4
+ 1002              	cy_meta_custnvl:
+ 1003 0000 00       		.byte	0
+ 1004 0001 00       		.byte	0
+ 1005 0002 40       		.byte	64
+ 1006 0003 05       		.byte	5
+ 1007              		.section	.cymeta,"a",%progbits
+ 1008              		.align	2
+ 1009              		.type	cy_metadata, %object
+ 1010              		.size	cy_metadata, 12
+ 1011              	cy_metadata:
+ 1012 0000 00       		.byte	0
+ 1013 0001 01       		.byte	1
+ 1014 0002 2E       		.byte	46
+ 1015 0003 16       		.byte	22
+ 1016 0004 10       		.byte	16
+ 1017 0005 69       		.byte	105
+ 1018 0006 00       		.byte	0
+ 1019 0007 01       		.byte	1
+ 1020 0008 00       		.byte	0
+ 1021 0009 00       		.byte	0
+ 1022 000a 00       		.byte	0
+ 1023 000b 00       		.byte	0
+ 1024              		.section	.cyflashprotect,"a",%progbits
+ 1025              		.align	2
+ 1026              		.type	cy_meta_flashprotect, %object
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccAnP0sL.s 			page 19
+
+
+ 1027              		.size	cy_meta_flashprotect, 256
+ 1028              	cy_meta_flashprotect:
+ 1029 0000 00000000 		.space	256
+ 1029      00000000 
+ 1029      00000000 
+ 1029      00000000 
+ 1029      00000000 
+ 1030              		.text
+ 1031              	.Letext0:
+ 1032              		.file 1 "c:\\program files (x86)\\cypress\\psoc creator\\4.4\\psoc creator\\import\\gnu\\arm\\5.4.
+ 1033              		.file 2 "c:\\program files (x86)\\cypress\\psoc creator\\4.4\\psoc creator\\import\\gnu\\arm\\5.4.
+ 1034              		.file 3 "Generated_Source\\PSoC5\\cymetadata.c"
+ 1035              		.section	.debug_info,"",%progbits
+ 1036              	.Ldebug_info0:
+ 1037 0000 31010000 		.4byte	0x131
+ 1038 0004 0400     		.2byte	0x4
+ 1039 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 1040 000a 04       		.byte	0x4
+ 1041 000b 01       		.uleb128 0x1
+ 1042 000c 24000000 		.4byte	.LASF17
+ 1043 0010 0C       		.byte	0xc
+ 1044 0011 DC010000 		.4byte	.LASF18
+ 1045 0015 F9000000 		.4byte	.LASF19
+ 1046 0019 00000000 		.4byte	.Ldebug_line0
+ 1047 001d 02       		.uleb128 0x2
+ 1048 001e 01       		.byte	0x1
+ 1049 001f 06       		.byte	0x6
+ 1050 0020 D0010000 		.4byte	.LASF0
+ 1051 0024 03       		.uleb128 0x3
+ 1052 0025 00000000 		.4byte	.LASF9
+ 1053 0029 01       		.byte	0x1
+ 1054 002a 1D       		.byte	0x1d
+ 1055 002b 2F000000 		.4byte	0x2f
+ 1056 002f 02       		.uleb128 0x2
+ 1057 0030 01       		.byte	0x1
+ 1058 0031 08       		.byte	0x8
+ 1059 0032 16000000 		.4byte	.LASF1
+ 1060 0036 02       		.uleb128 0x2
+ 1061 0037 02       		.byte	0x2
+ 1062 0038 05       		.byte	0x5
+ 1063 0039 BD010000 		.4byte	.LASF2
+ 1064 003d 02       		.uleb128 0x2
+ 1065 003e 02       		.byte	0x2
+ 1066 003f 07       		.byte	0x7
+ 1067 0040 C4000000 		.4byte	.LASF3
+ 1068 0044 02       		.uleb128 0x2
+ 1069 0045 04       		.byte	0x4
+ 1070 0046 05       		.byte	0x5
+ 1071 0047 C7010000 		.4byte	.LASF4
+ 1072 004b 02       		.uleb128 0x2
+ 1073 004c 04       		.byte	0x4
+ 1074 004d 07       		.byte	0x7
+ 1075 004e B2000000 		.4byte	.LASF5
+ 1076 0052 02       		.uleb128 0x2
+ 1077 0053 08       		.byte	0x8
+ 1078 0054 05       		.byte	0x5
+ 1079 0055 AF010000 		.4byte	.LASF6
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccAnP0sL.s 			page 20
+
+
+ 1080 0059 02       		.uleb128 0x2
+ 1081 005a 08       		.byte	0x8
+ 1082 005b 07       		.byte	0x7
+ 1083 005c 64010000 		.4byte	.LASF7
+ 1084 0060 04       		.uleb128 0x4
+ 1085 0061 04       		.byte	0x4
+ 1086 0062 05       		.byte	0x5
+ 1087 0063 696E7400 		.ascii	"int\000"
+ 1088 0067 02       		.uleb128 0x2
+ 1089 0068 04       		.byte	0x4
+ 1090 0069 07       		.byte	0x7
+ 1091 006a 57010000 		.4byte	.LASF8
+ 1092 006e 03       		.uleb128 0x3
+ 1093 006f 7B010000 		.4byte	.LASF10
+ 1094 0073 02       		.byte	0x2
+ 1095 0074 18       		.byte	0x18
+ 1096 0075 24000000 		.4byte	0x24
+ 1097 0079 05       		.uleb128 0x5
+ 1098 007a 91000000 		.4byte	0x91
+ 1099 007e 8A000000 		.4byte	0x8a
+ 1100 0082 06       		.uleb128 0x6
+ 1101 0083 8A000000 		.4byte	0x8a
+ 1102 0087 BF03     		.2byte	0x3bf
+ 1103 0089 00       		.byte	0
+ 1104 008a 02       		.uleb128 0x2
+ 1105 008b 04       		.byte	0x4
+ 1106 008c 07       		.byte	0x7
+ 1107 008d A6010000 		.4byte	.LASF11
+ 1108 0091 07       		.uleb128 0x7
+ 1109 0092 6E000000 		.4byte	0x6e
+ 1110 0096 08       		.uleb128 0x8
+ 1111 0097 E7000000 		.4byte	.LASF12
+ 1112 009b 03       		.byte	0x3
+ 1113 009c 1F       		.byte	0x1f
+ 1114 009d A7000000 		.4byte	0xa7
+ 1115 00a1 05       		.uleb128 0x5
+ 1116 00a2 03       		.byte	0x3
+ 1117 00a3 00000000 		.4byte	cy_meta_configecc
+ 1118 00a7 07       		.uleb128 0x7
+ 1119 00a8 79000000 		.4byte	0x79
+ 1120 00ac 05       		.uleb128 0x5
+ 1121 00ad 91000000 		.4byte	0x91
+ 1122 00b1 BC000000 		.4byte	0xbc
+ 1123 00b5 09       		.uleb128 0x9
+ 1124 00b6 8A000000 		.4byte	0x8a
+ 1125 00ba 03       		.byte	0x3
+ 1126 00bb 00       		.byte	0
+ 1127 00bc 08       		.uleb128 0x8
+ 1128 00bd D7000000 		.4byte	.LASF13
+ 1129 00c1 03       		.byte	0x3
+ 1130 00c2 A4       		.byte	0xa4
+ 1131 00c3 CD000000 		.4byte	0xcd
+ 1132 00c7 05       		.uleb128 0x5
+ 1133 00c8 03       		.byte	0x3
+ 1134 00c9 00000000 		.4byte	cy_meta_custnvl
+ 1135 00cd 07       		.uleb128 0x7
+ 1136 00ce AC000000 		.4byte	0xac
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccAnP0sL.s 			page 21
+
+
+ 1137 00d2 08       		.uleb128 0x8
+ 1138 00d3 98010000 		.4byte	.LASF14
+ 1139 00d7 03       		.byte	0x3
+ 1140 00d8 B2       		.byte	0xb2
+ 1141 00d9 E3000000 		.4byte	0xe3
+ 1142 00dd 05       		.uleb128 0x5
+ 1143 00de 03       		.byte	0x3
+ 1144 00df 00000000 		.4byte	cy_meta_wonvl
+ 1145 00e3 07       		.uleb128 0x7
+ 1146 00e4 AC000000 		.4byte	0xac
+ 1147 00e8 05       		.uleb128 0x5
+ 1148 00e9 91000000 		.4byte	0x91
+ 1149 00ed F8000000 		.4byte	0xf8
+ 1150 00f1 09       		.uleb128 0x9
+ 1151 00f2 8A000000 		.4byte	0x8a
+ 1152 00f6 FF       		.byte	0xff
+ 1153 00f7 00       		.byte	0
+ 1154 00f8 08       		.uleb128 0x8
+ 1155 00f9 83010000 		.4byte	.LASF15
+ 1156 00fd 03       		.byte	0x3
+ 1157 00fe C0       		.byte	0xc0
+ 1158 00ff 09010000 		.4byte	0x109
+ 1159 0103 05       		.uleb128 0x5
+ 1160 0104 03       		.byte	0x3
+ 1161 0105 00000000 		.4byte	cy_meta_flashprotect
+ 1162 0109 07       		.uleb128 0x7
+ 1163 010a E8000000 		.4byte	0xe8
+ 1164 010e 05       		.uleb128 0x5
+ 1165 010f 91000000 		.4byte	0x91
+ 1166 0113 1E010000 		.4byte	0x11e
+ 1167 0117 09       		.uleb128 0x9
+ 1168 0118 8A000000 		.4byte	0x8a
+ 1169 011c 0B       		.byte	0xb
+ 1170 011d 00       		.byte	0
+ 1171 011e 08       		.uleb128 0x8
+ 1172 011f 0A000000 		.4byte	.LASF16
+ 1173 0123 03       		.byte	0x3
+ 1174 0124 ED       		.byte	0xed
+ 1175 0125 2F010000 		.4byte	0x12f
+ 1176 0129 05       		.uleb128 0x5
+ 1177 012a 03       		.byte	0x3
+ 1178 012b 00000000 		.4byte	cy_metadata
+ 1179 012f 07       		.uleb128 0x7
+ 1180 0130 0E010000 		.4byte	0x10e
+ 1181 0134 00       		.byte	0
+ 1182              		.section	.debug_abbrev,"",%progbits
+ 1183              	.Ldebug_abbrev0:
+ 1184 0000 01       		.uleb128 0x1
+ 1185 0001 11       		.uleb128 0x11
+ 1186 0002 01       		.byte	0x1
+ 1187 0003 25       		.uleb128 0x25
+ 1188 0004 0E       		.uleb128 0xe
+ 1189 0005 13       		.uleb128 0x13
+ 1190 0006 0B       		.uleb128 0xb
+ 1191 0007 03       		.uleb128 0x3
+ 1192 0008 0E       		.uleb128 0xe
+ 1193 0009 1B       		.uleb128 0x1b
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccAnP0sL.s 			page 22
+
+
+ 1194 000a 0E       		.uleb128 0xe
+ 1195 000b 10       		.uleb128 0x10
+ 1196 000c 17       		.uleb128 0x17
+ 1197 000d 00       		.byte	0
+ 1198 000e 00       		.byte	0
+ 1199 000f 02       		.uleb128 0x2
+ 1200 0010 24       		.uleb128 0x24
+ 1201 0011 00       		.byte	0
+ 1202 0012 0B       		.uleb128 0xb
+ 1203 0013 0B       		.uleb128 0xb
+ 1204 0014 3E       		.uleb128 0x3e
+ 1205 0015 0B       		.uleb128 0xb
+ 1206 0016 03       		.uleb128 0x3
+ 1207 0017 0E       		.uleb128 0xe
+ 1208 0018 00       		.byte	0
+ 1209 0019 00       		.byte	0
+ 1210 001a 03       		.uleb128 0x3
+ 1211 001b 16       		.uleb128 0x16
+ 1212 001c 00       		.byte	0
+ 1213 001d 03       		.uleb128 0x3
+ 1214 001e 0E       		.uleb128 0xe
+ 1215 001f 3A       		.uleb128 0x3a
+ 1216 0020 0B       		.uleb128 0xb
+ 1217 0021 3B       		.uleb128 0x3b
+ 1218 0022 0B       		.uleb128 0xb
+ 1219 0023 49       		.uleb128 0x49
+ 1220 0024 13       		.uleb128 0x13
+ 1221 0025 00       		.byte	0
+ 1222 0026 00       		.byte	0
+ 1223 0027 04       		.uleb128 0x4
+ 1224 0028 24       		.uleb128 0x24
+ 1225 0029 00       		.byte	0
+ 1226 002a 0B       		.uleb128 0xb
+ 1227 002b 0B       		.uleb128 0xb
+ 1228 002c 3E       		.uleb128 0x3e
+ 1229 002d 0B       		.uleb128 0xb
+ 1230 002e 03       		.uleb128 0x3
+ 1231 002f 08       		.uleb128 0x8
+ 1232 0030 00       		.byte	0
+ 1233 0031 00       		.byte	0
+ 1234 0032 05       		.uleb128 0x5
+ 1235 0033 01       		.uleb128 0x1
+ 1236 0034 01       		.byte	0x1
+ 1237 0035 49       		.uleb128 0x49
+ 1238 0036 13       		.uleb128 0x13
+ 1239 0037 01       		.uleb128 0x1
+ 1240 0038 13       		.uleb128 0x13
+ 1241 0039 00       		.byte	0
+ 1242 003a 00       		.byte	0
+ 1243 003b 06       		.uleb128 0x6
+ 1244 003c 21       		.uleb128 0x21
+ 1245 003d 00       		.byte	0
+ 1246 003e 49       		.uleb128 0x49
+ 1247 003f 13       		.uleb128 0x13
+ 1248 0040 2F       		.uleb128 0x2f
+ 1249 0041 05       		.uleb128 0x5
+ 1250 0042 00       		.byte	0
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccAnP0sL.s 			page 23
+
+
+ 1251 0043 00       		.byte	0
+ 1252 0044 07       		.uleb128 0x7
+ 1253 0045 26       		.uleb128 0x26
+ 1254 0046 00       		.byte	0
+ 1255 0047 49       		.uleb128 0x49
+ 1256 0048 13       		.uleb128 0x13
+ 1257 0049 00       		.byte	0
+ 1258 004a 00       		.byte	0
+ 1259 004b 08       		.uleb128 0x8
+ 1260 004c 34       		.uleb128 0x34
+ 1261 004d 00       		.byte	0
+ 1262 004e 03       		.uleb128 0x3
+ 1263 004f 0E       		.uleb128 0xe
+ 1264 0050 3A       		.uleb128 0x3a
+ 1265 0051 0B       		.uleb128 0xb
+ 1266 0052 3B       		.uleb128 0x3b
+ 1267 0053 0B       		.uleb128 0xb
+ 1268 0054 49       		.uleb128 0x49
+ 1269 0055 13       		.uleb128 0x13
+ 1270 0056 3F       		.uleb128 0x3f
+ 1271 0057 19       		.uleb128 0x19
+ 1272 0058 02       		.uleb128 0x2
+ 1273 0059 18       		.uleb128 0x18
+ 1274 005a 00       		.byte	0
+ 1275 005b 00       		.byte	0
+ 1276 005c 09       		.uleb128 0x9
+ 1277 005d 21       		.uleb128 0x21
+ 1278 005e 00       		.byte	0
+ 1279 005f 49       		.uleb128 0x49
+ 1280 0060 13       		.uleb128 0x13
+ 1281 0061 2F       		.uleb128 0x2f
+ 1282 0062 0B       		.uleb128 0xb
+ 1283 0063 00       		.byte	0
+ 1284 0064 00       		.byte	0
+ 1285 0065 00       		.byte	0
+ 1286              		.section	.debug_aranges,"",%progbits
+ 1287 0000 14000000 		.4byte	0x14
+ 1288 0004 0200     		.2byte	0x2
+ 1289 0006 00000000 		.4byte	.Ldebug_info0
+ 1290 000a 04       		.byte	0x4
+ 1291 000b 00       		.byte	0
+ 1292 000c 0000     		.2byte	0
+ 1293 000e 0000     		.2byte	0
+ 1294 0010 00000000 		.4byte	0
+ 1295 0014 00000000 		.4byte	0
+ 1296              		.section	.debug_line,"",%progbits
+ 1297              	.Ldebug_line0:
+ 1298 0000 3D010000 		.section	.debug_str,"MS",%progbits,1
+ 1298      02003701 
+ 1298      00000201 
+ 1298      FB0E0D00 
+ 1298      01010101 
+ 1299              	.LASF9:
+ 1300 0000 5F5F7569 		.ascii	"__uint8_t\000"
+ 1300      6E74385F 
+ 1300      7400
+ 1301              	.LASF16:
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccAnP0sL.s 			page 24
+
+
+ 1302 000a 63795F6D 		.ascii	"cy_metadata\000"
+ 1302      65746164 
+ 1302      61746100 
+ 1303              	.LASF1:
+ 1304 0016 756E7369 		.ascii	"unsigned char\000"
+ 1304      676E6564 
+ 1304      20636861 
+ 1304      7200
+ 1305              	.LASF17:
+ 1306 0024 474E5520 		.ascii	"GNU C11 5.4.1 20160609 (release) [ARM/embedded-5-br"
+ 1306      43313120 
+ 1306      352E342E 
+ 1306      31203230 
+ 1306      31363036 
+ 1307 0057 616E6368 		.ascii	"anch revision 237715] -mcpu=cortex-m3 -mthumb -g -O"
+ 1307      20726576 
+ 1307      6973696F 
+ 1307      6E203233 
+ 1307      37373135 
+ 1308 008a 67202D66 		.ascii	"g -ffunction-sections -ffat-lto-objects\000"
+ 1308      66756E63 
+ 1308      74696F6E 
+ 1308      2D736563 
+ 1308      74696F6E 
+ 1309              	.LASF5:
+ 1310 00b2 6C6F6E67 		.ascii	"long unsigned int\000"
+ 1310      20756E73 
+ 1310      69676E65 
+ 1310      6420696E 
+ 1310      7400
+ 1311              	.LASF3:
+ 1312 00c4 73686F72 		.ascii	"short unsigned int\000"
+ 1312      7420756E 
+ 1312      7369676E 
+ 1312      65642069 
+ 1312      6E7400
+ 1313              	.LASF13:
+ 1314 00d7 63795F6D 		.ascii	"cy_meta_custnvl\000"
+ 1314      6574615F 
+ 1314      63757374 
+ 1314      6E766C00 
+ 1315              	.LASF12:
+ 1316 00e7 63795F6D 		.ascii	"cy_meta_configecc\000"
+ 1316      6574615F 
+ 1316      636F6E66 
+ 1316      69676563 
+ 1316      6300
+ 1317              	.LASF19:
+ 1318 00f9 433A5C55 		.ascii	"C:\\Users\\dmeichle\\Desktop\\Code\\Quench\\BNL\\PS"
+ 1318      73657273 
+ 1318      5C646D65 
+ 1318      6963686C 
+ 1318      655C4465 
+ 1319 0125 6F435F54 		.ascii	"oC_Template_Workspace\\PSoC_Template_Project.cydsn\000"
+ 1319      656D706C 
+ 1319      6174655F 
+ 1319      576F726B 
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccAnP0sL.s 			page 25
+
+
+ 1319      73706163 
+ 1320              	.LASF8:
+ 1321 0157 756E7369 		.ascii	"unsigned int\000"
+ 1321      676E6564 
+ 1321      20696E74 
+ 1321      00
+ 1322              	.LASF7:
+ 1323 0164 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 1323      206C6F6E 
+ 1323      6720756E 
+ 1323      7369676E 
+ 1323      65642069 
+ 1324              	.LASF10:
+ 1325 017b 75696E74 		.ascii	"uint8_t\000"
+ 1325      385F7400 
+ 1326              	.LASF15:
+ 1327 0183 63795F6D 		.ascii	"cy_meta_flashprotect\000"
+ 1327      6574615F 
+ 1327      666C6173 
+ 1327      6870726F 
+ 1327      74656374 
+ 1328              	.LASF14:
+ 1329 0198 63795F6D 		.ascii	"cy_meta_wonvl\000"
+ 1329      6574615F 
+ 1329      776F6E76 
+ 1329      6C00
+ 1330              	.LASF11:
+ 1331 01a6 73697A65 		.ascii	"sizetype\000"
+ 1331      74797065 
+ 1331      00
+ 1332              	.LASF6:
+ 1333 01af 6C6F6E67 		.ascii	"long long int\000"
+ 1333      206C6F6E 
+ 1333      6720696E 
+ 1333      7400
+ 1334              	.LASF2:
+ 1335 01bd 73686F72 		.ascii	"short int\000"
+ 1335      7420696E 
+ 1335      7400
+ 1336              	.LASF4:
+ 1337 01c7 6C6F6E67 		.ascii	"long int\000"
+ 1337      20696E74 
+ 1337      00
+ 1338              	.LASF0:
+ 1339 01d0 7369676E 		.ascii	"signed char\000"
+ 1339      65642063 
+ 1339      68617200 
+ 1340              	.LASF18:
+ 1341 01dc 47656E65 		.ascii	"Generated_Source\\PSoC5\\cymetadata.c\000"
+ 1341      72617465 
+ 1341      645F536F 
+ 1341      75726365 
+ 1341      5C50536F 
+ 1342              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 5.4.1 20160609 (release) [ARM/embedded-5-bran

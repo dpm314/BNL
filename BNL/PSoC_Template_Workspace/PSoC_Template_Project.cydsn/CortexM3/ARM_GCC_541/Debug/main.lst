@@ -1,0 +1,252 @@
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccp8eO06.s 			page 1
+
+
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"main.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.section	.text.main,"ax",%progbits
+  20              		.align	2
+  21              		.global	main
+  22              		.thumb
+  23              		.thumb_func
+  24              		.type	main, %function
+  25              	main:
+  26              	.LFB0:
+  27              		.file 1 "main.c"
+   1:main.c        **** /*
+   2:main.c        **** PSoC5 Dev Kit PinOuts: 
+   3:main.c        **** Dev Kit Part Number: CY8CKIT-059 
+   4:main.c        **** http://www.cypress.com/documentation/development-kitsboards/cy8ckit-059-psoc-5lp-prototyping-kit-on
+   5:main.c        **** http://www.cypress.com/file/157971/download
+   6:main.c        **** 
+   7:main.c        **** SysTimer is an additional component from:
+   8:main.c        **** http://www.cypress.com/forum/psoc-community-components/systimers-component
+   9:main.c        **** 
+  10:main.c        **** FTDI Cable Yellow (USB/UART TX) Port 1.7 (DPM: verified correct)
+  11:main.c        **** FTDI Cable Orange (USB/UART RX) Port 1.6
+  12:main.c        **** FTDI Cable Black  (USB/UART RX) Ground
+  13:main.c        **** 
+  14:main.c        **** */
+  15:main.c        **** /*
+  16:main.c        **** #include <project.h>
+  17:main.c        **** #include "knobs.h"
+  18:main.c        **** 
+  19:main.c        **** #include "MessageHandler.h"
+  20:main.c        **** #include "isr_rx_helper.h"
+  21:main.c        **** void init();
+  22:main.c        **** uint32 SysTicksMS;
+  23:main.c        **** 
+  24:main.c        **** uint8 rxbuf[RX_SOFTWARE_BUFFER_LENGTH];
+  25:main.c        **** uint8 rxReadIndex  = 0;
+  26:main.c        **** uint8 rxWriteIndex = 0;
+  27:main.c        **** uint8 rxReadChar = RX_NO_PACKETES; 
+  28:main.c        **** float rxReadFloat = 0.0; 
+  29:main.c        **** void handleRx();
+  30:main.c        **** */
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccp8eO06.s 			page 2
+
+
+  31:main.c        **** 
+  32:main.c        **** 
+  33:main.c        **** int main()
+  34:main.c        **** {
+  28              		.loc 1 34 0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 0
+  31              		@ frame_needed = 0, uses_anonymous_args = 0
+  32              		@ link register save eliminated.
+  35:main.c        ****     /*
+  36:main.c        ****     init();   
+  37:main.c        ****     uint32 counter = 0;
+  38:main.c        ****     while(1)
+  39:main.c        ****     {
+  40:main.c        ****         if(rxReadIndex != rxWriteIndex)
+  41:main.c        ****         {
+  42:main.c        ****             parseRxBuffer();
+  43:main.c        ****             while( rxReadChar != RX_NO_PACKETES )
+  44:main.c        ****             {
+  45:main.c        ****                 handleRx();
+  46:main.c        ****                 parseRxBuffer();
+  47:main.c        ****             }
+  48:main.c        ****         }
+  49:main.c        ****         CyDelay(100);
+  50:main.c        ****         counter++;
+  51:main.c        ****         sendLogMessage("Hello World: %i", counter); 
+  52:main.c        ****     }
+  53:main.c        ****     */
+  54:main.c        **** }
+  33              		.loc 1 54 0
+  34 0000 0020     		movs	r0, #0
+  35 0002 7047     		bx	lr
+  36              		.cfi_endproc
+  37              	.LFE0:
+  38              		.size	main, .-main
+  39              		.text
+  40              	.Letext0:
+  41              		.section	.debug_info,"",%progbits
+  42              	.Ldebug_info0:
+  43 0000 3E000000 		.4byte	0x3e
+  44 0004 0400     		.2byte	0x4
+  45 0006 00000000 		.4byte	.Ldebug_abbrev0
+  46 000a 04       		.byte	0x4
+  47 000b 01       		.uleb128 0x1
+  48 000c 00000000 		.4byte	.LASF0
+  49 0010 0C       		.byte	0xc
+  50 0011 8E000000 		.4byte	.LASF1
+  51 0015 95000000 		.4byte	.LASF2
+  52 0019 00000000 		.4byte	.Ldebug_ranges0+0
+  53 001d 00000000 		.4byte	0
+  54 0021 00000000 		.4byte	.Ldebug_line0
+  55 0025 02       		.uleb128 0x2
+  56 0026 F3000000 		.4byte	.LASF3
+  57 002a 01       		.byte	0x1
+  58 002b 21       		.byte	0x21
+  59 002c 3A000000 		.4byte	0x3a
+  60 0030 00000000 		.4byte	.LFB0
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccp8eO06.s 			page 3
+
+
+  61 0034 04000000 		.4byte	.LFE0-.LFB0
+  62 0038 01       		.uleb128 0x1
+  63 0039 9C       		.byte	0x9c
+  64 003a 03       		.uleb128 0x3
+  65 003b 04       		.byte	0x4
+  66 003c 05       		.byte	0x5
+  67 003d 696E7400 		.ascii	"int\000"
+  68 0041 00       		.byte	0
+  69              		.section	.debug_abbrev,"",%progbits
+  70              	.Ldebug_abbrev0:
+  71 0000 01       		.uleb128 0x1
+  72 0001 11       		.uleb128 0x11
+  73 0002 01       		.byte	0x1
+  74 0003 25       		.uleb128 0x25
+  75 0004 0E       		.uleb128 0xe
+  76 0005 13       		.uleb128 0x13
+  77 0006 0B       		.uleb128 0xb
+  78 0007 03       		.uleb128 0x3
+  79 0008 0E       		.uleb128 0xe
+  80 0009 1B       		.uleb128 0x1b
+  81 000a 0E       		.uleb128 0xe
+  82 000b 55       		.uleb128 0x55
+  83 000c 17       		.uleb128 0x17
+  84 000d 11       		.uleb128 0x11
+  85 000e 01       		.uleb128 0x1
+  86 000f 10       		.uleb128 0x10
+  87 0010 17       		.uleb128 0x17
+  88 0011 00       		.byte	0
+  89 0012 00       		.byte	0
+  90 0013 02       		.uleb128 0x2
+  91 0014 2E       		.uleb128 0x2e
+  92 0015 00       		.byte	0
+  93 0016 3F       		.uleb128 0x3f
+  94 0017 19       		.uleb128 0x19
+  95 0018 03       		.uleb128 0x3
+  96 0019 0E       		.uleb128 0xe
+  97 001a 3A       		.uleb128 0x3a
+  98 001b 0B       		.uleb128 0xb
+  99 001c 3B       		.uleb128 0x3b
+ 100 001d 0B       		.uleb128 0xb
+ 101 001e 49       		.uleb128 0x49
+ 102 001f 13       		.uleb128 0x13
+ 103 0020 11       		.uleb128 0x11
+ 104 0021 01       		.uleb128 0x1
+ 105 0022 12       		.uleb128 0x12
+ 106 0023 06       		.uleb128 0x6
+ 107 0024 40       		.uleb128 0x40
+ 108 0025 18       		.uleb128 0x18
+ 109 0026 9742     		.uleb128 0x2117
+ 110 0028 19       		.uleb128 0x19
+ 111 0029 00       		.byte	0
+ 112 002a 00       		.byte	0
+ 113 002b 03       		.uleb128 0x3
+ 114 002c 24       		.uleb128 0x24
+ 115 002d 00       		.byte	0
+ 116 002e 0B       		.uleb128 0xb
+ 117 002f 0B       		.uleb128 0xb
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccp8eO06.s 			page 4
+
+
+ 118 0030 3E       		.uleb128 0x3e
+ 119 0031 0B       		.uleb128 0xb
+ 120 0032 03       		.uleb128 0x3
+ 121 0033 08       		.uleb128 0x8
+ 122 0034 00       		.byte	0
+ 123 0035 00       		.byte	0
+ 124 0036 00       		.byte	0
+ 125              		.section	.debug_aranges,"",%progbits
+ 126 0000 1C000000 		.4byte	0x1c
+ 127 0004 0200     		.2byte	0x2
+ 128 0006 00000000 		.4byte	.Ldebug_info0
+ 129 000a 04       		.byte	0x4
+ 130 000b 00       		.byte	0
+ 131 000c 0000     		.2byte	0
+ 132 000e 0000     		.2byte	0
+ 133 0010 00000000 		.4byte	.LFB0
+ 134 0014 04000000 		.4byte	.LFE0-.LFB0
+ 135 0018 00000000 		.4byte	0
+ 136 001c 00000000 		.4byte	0
+ 137              		.section	.debug_ranges,"",%progbits
+ 138              	.Ldebug_ranges0:
+ 139 0000 00000000 		.4byte	.LFB0
+ 140 0004 04000000 		.4byte	.LFE0
+ 141 0008 00000000 		.4byte	0
+ 142 000c 00000000 		.4byte	0
+ 143              		.section	.debug_line,"",%progbits
+ 144              	.Ldebug_line0:
+ 145 0000 35000000 		.section	.debug_str,"MS",%progbits,1
+ 145      02001D00 
+ 145      00000201 
+ 145      FB0E0D00 
+ 145      01010101 
+ 146              	.LASF0:
+ 147 0000 474E5520 		.ascii	"GNU C11 5.4.1 20160609 (release) [ARM/embedded-5-br"
+ 147      43313120 
+ 147      352E342E 
+ 147      31203230 
+ 147      31363036 
+ 148 0033 616E6368 		.ascii	"anch revision 237715] -mcpu=cortex-m3 -mthumb -g -O"
+ 148      20726576 
+ 148      6973696F 
+ 148      6E203233 
+ 148      37373135 
+ 149 0066 67202D66 		.ascii	"g -ffunction-sections -ffat-lto-objects\000"
+ 149      66756E63 
+ 149      74696F6E 
+ 149      2D736563 
+ 149      74696F6E 
+ 150              	.LASF1:
+ 151 008e 6D61696E 		.ascii	"main.c\000"
+ 151      2E6300
+ 152              	.LASF2:
+ 153 0095 433A5C55 		.ascii	"C:\\Users\\dmeichle\\Desktop\\Code\\Quench\\BNL\\PS"
+ 153      73657273 
+ 153      5C646D65 
+ 153      6963686C 
+ 153      655C4465 
+ARM GAS  C:\Users\dmeichle\AppData\Local\Temp\ccp8eO06.s 			page 5
+
+
+ 154 00c1 6F435F54 		.ascii	"oC_Template_Workspace\\PSoC_Template_Project.cydsn\000"
+ 154      656D706C 
+ 154      6174655F 
+ 154      576F726B 
+ 154      73706163 
+ 155              	.LASF3:
+ 156 00f3 6D61696E 		.ascii	"main\000"
+ 156      00
+ 157              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 5.4.1 20160609 (release) [ARM/embedded-5-bran
