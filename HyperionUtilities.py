@@ -35,7 +35,6 @@ class HyperionDataset():
             Specify recentfileOffset to select the N-th most recent file
             ie if recentfileOffset is 1 the 2'nd most recent file is opened,
                if recentfileOffset is 2 then the 3'rd most recent file is opened etc.'
-
         """
 
         if dataFileName is None:
