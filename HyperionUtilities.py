@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import os
 from pathlib import Path
 from datetime import datetime
+from matplotlib import cm
 DEFAULT_DATA_FOLDER = r"C:/Users/dmeichle/Documents/Micron Optics/ENLIGHT/Data/2020/11/"
 DEFAULT_DATAFILE_KEY = 'Responses.'
 
@@ -191,6 +192,23 @@ class HyperionDataset():
                 plt.ylabel('Reflected Power (dB)', fontsize = 14)
         plt.xlim( [wavelengthRng[0], wavelengthRng[1]] )
 
+    def colorTempPlot(self, labelFunction = None, skip = 1, wavelengthRng = [1548,1552], startOffset = 0):
+        plt.figure()
+        numPlots = (self.data.shape[0] -startOffset) // skip
+        color = cm.rainbow( np.linspace(0,1,numPlots+1) )
+        color = color[::-1]
+        #for (i,cindex) in zip(range(0,self.data.shape[0], skip), range(numPlots)):
+        for i in range( numPlots-1):
+            specInd = i*skip + startOffset
+            if labelFunction is not None: #disable if not passing labels
+                plt.legend(prop={'size':10})
+                theLabel = labelFunction(self.time[specInd]) #label = '{:3.2f} C'.format(theLabel)
+                plt.plot( self.waveLengths, self.data[specInd], color = color[i], label = label)
+            else:
+                plt.plot( self.waveLengths, self.data[specInd], color = color[i])
+        plt.xlim([wavelengthRng[0], wavelengthRng[1]])
+        plt.tight_layout()
+
 
     def plotBins(self,bins, skip=1, figNum = 1):
         if type(bins) != type([]):
@@ -218,47 +236,61 @@ class HyperionDataset():
         plt.title('Standard Deviation of each Bin')
         plt.ylabel('STD Spectral Power', fontsize = 14)
         plt.xlabel('Wavelength (nm)', fontsize = 14)
-#%%###########################################################################
-q = HyperionDataset(channels = [0], recentFileOffset=1); #heating
-q.plotSpec()
-#%%
-q = HyperionDataset(channels = [0], recentFileOffset=0); #cooling
-q.plotSpec()
-#%%
-dotRng = [4750,5150]
-dots0 = np.dot(q.data[0,dotRng[0]:dotRng[1] ],q.data[0,dotRng[0]:dotRng[1]])
-dots = []
-legends = [str(x) for x in range(len(q.data))]
-for i in range(len(q.data)):
-    dots.append( np.dot(q.data[0,dotRng[0]:dotRng[1]], q.data[i,dotRng[0]:dotRng[1]]) / dots0 )
-for i in range(len(dots)):
-    plt.plot(q.time[i],dots[i],'x',label=legends[i])
-    #plt.plot(q.data[i],label=legends[i])
+# #%%###########################################################################
+def calcDetSignal(q, dotRng_ind = [4200,5100], toPlot=True):
+    dots0 = np.dot(q.data[0,dotRng_ind[0]:dotRng_ind[1] ],q.data[0,dotRng_ind[0]:dotRng_ind[1]])
+    dots = []
+    legends = [str(x) for x in range(len(q.data))]
+    for i in range(len(q.data)):
+        dots.append( np.dot(q.data[0,dotRng_ind[0]:dotRng_ind[1]], q.data[i,dotRng_ind[0]:dotRng_ind[1]]) / dots0 )
 
-plt.legend()
-print(dots)
-#%%
-plt.plot(q.time,dots, '.')
-plt.xlabel('Time (s)', fontsize = 14)
-plt.ylabel('Dimensionless Detection Signal', fontsize = 14)
-plt.title('Heat gun applied right before 100 s')
-#%%
-# For heating data set
-plt.figure()
-plt.plot(q.waveLengths, q.data[0], 'r', label = 'Ambient (start)')
-plt.plot(q.waveLengths, q.data[18], 'g', label = 'Approx 40 C ~ 100 sec')
-plt.plot(q.waveLengths, q.data[-1], 'b', label = 'Amgient (end) ~745 sec')
-plt.legend()
-plt.xlim([1548, 1552])
-plt.xlabel("Wavelength (nm)", fontsize = 14)
-plt.ylabel("Reflected Power (dB)", fontsize = 14)
-#%%
+    if toPlot:
+        plt.figure()
+        for i in range(len(dots)):
+            plt.plot(q.time[i],dots[i],'b.',label=legends[i])
+        plt.ylabel("Dimensionless Temp Detection Signal", fontsize = 14)
+        plt.xlabel("Time (s)",fontsize = 14)
+    return dots
+# q = HyperionDataset(channels = [0], recentFileOffset=1); #heating
+# q.plotSpec()
+# #%%
+# q = HyperionDataset(channels = [0], recentFileOffset=0); #cooling
+# q.plotSpec()
+# #%%
+# dotRng = [4750,5150]
+# dots0 = np.dot(q.data[0,dotRng[0]:dotRng[1] ],q.data[0,dotRng[0]:dotRng[1]])
+# dots = []
+# legends = [str(x) for x in range(len(q.data))]
+# for i in range(len(q.data)):
+#     dots.append( np.dot(q.data[0,dotRng[0]:dotRng[1]], q.data[i,dotRng[0]:dotRng[1]]) / dots0 )
+# for i in range(len(dots)):
+#     plt.plot(q.time[i],dots[i],'x',label=legends[i])
+#     #plt.plot(q.data[i],label=legends[i])
 
-#%%
-from matplotlib import cm
-color = cm.rainbow(np.linspace(0,1,q.data.shape[0]))
-for spec,c in zip(q.data, color[::-1]):
-    plt.plot(q.waveLengths, spec, c=c)
-    plt.xlim([1548, 1552])
-plt.xlabel('Wavelength (nm)', fontsize = 14)
-plt.ylabel('Reflected Power (dB)', fontsize = 14)
+# plt.legend()
+# print(dots)
+# #%%
+# plt.plot(q.time,dots, '.')
+# plt.xlabel('Time (s)', fontsize = 14)
+# plt.ylabel('Dimensionless Detection Signal', fontsize = 14)
+# plt.title('Heat gun applied right before 100 s')
+# #%%
+# # For heating data set
+# plt.figure()
+# plt.plot(q.waveLengths, q.data[0], 'r', label = 'Ambient (start)')
+# plt.plot(q.waveLengths, q.data[18], 'g', label = 'Approx 40 C ~ 100 sec')
+# plt.plot(q.waveLengths, q.data[-1], 'b', label = 'Amgient (end) ~745 sec')
+# plt.legend()
+# plt.xlim([1548, 1552])
+# plt.xlabel("Wavelength (nm)", fontsize = 14)
+# plt.ylabel("Reflected Power (dB)", fontsize = 14)
+# #%%
+
+# #%%
+# from matplotlib import cm
+# color = cm.rainbow(np.linspace(0,1,q.data.shape[0]))
+# for spec,c in zip(q.data, color[::-1]):
+#     plt.plot(q.waveLengths, spec, c=c)
+#     plt.xlim([1548, 1552])
+# plt.xlabel('Wavelength (nm)', fontsize = 14)
+# plt.ylabel('Reflected Power (dB)', fontsize = 14)

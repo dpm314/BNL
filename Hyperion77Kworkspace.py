@@ -1,8 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import cm
 from scipy.interpolate import interp1d
-#from HyperionUtilies import HyerionDataset
+from HyperionUtilities import HyperionDataset
+from HyperionUtilities import calcDetSignal
+#%%
+q = HyperionDataset(fname, channels = [1]); q.colorTempPlot()
 #%%
 #Temperature
 T =   [21.4 ,   20.5,   17.6,  14.3,   12.2,   11.0,    6.0,    1.1,    1.2,  -14.0,  -21.0,  -27.0,  -34.0,  -42.0, -46.5,
@@ -46,20 +48,7 @@ q = HyperionDataset(fname)
 # plt.xlabel("Time (s)",fontsize = 14)
 # print(dots)
 #%%
-def calcDetSignal(q, dotRng_ind = [4200,5100], toPlot=True):
-    dots0 = np.dot(q.data[0,dotRng_ind[0]:dotRng_ind[1] ],q.data[0,dotRng_ind[0]:dotRng_ind[1]])
-    dots = []
-    legends = [str(x) for x in range(len(q.data))]
-    for i in range(len(q.data)):
-        dots.append( np.dot(q.data[0,dotRng_ind[0]:dotRng_ind[1]], q.data[i,dotRng_ind[0]:dotRng_ind[1]]) / dots0 )
 
-    if toPlot:
-        plt.figure()
-        for i in range(len(dots)):
-            plt.plot(q.time[i],dots[i],'b.',label=legends[i])
-        plt.ylabel("Dimensionless Temp Detection Signal", fontsize = 14)
-        plt.xlabel("Time (s)",fontsize = 14)
-    return dots
 
 
 
@@ -86,20 +75,7 @@ plt.ylabel('Temperature (C)', fontsize = 14)
 
 #%%
 
-def colorTempPlot(specData, labelFunction, skip = 1, wavelengthRng = [1548,1552], startOffset = 0):
-    plt.figure()
-    numPlots = (specData.data.shape[0] -startOffset) // skip
-    color = cm.rainbow( np.linspace(0,1,numPlots+1) )
-    #for (i,cindex) in zip(range(0,specData.data.shape[0], skip), range(numPlots)):
-    for i in range( numPlots-1):
-        specInd = i*skip + startOffset
-        theLabel = labelFunction(specData.time[specInd])
-        label = '{:3.2f} C'.format(theLabel)
-        plt.plot( specData.waveLengths, specData.data[specInd], color = color[i], label = label)
-    if labelFunction(0) != -1: #disable if not passing labels
-        plt.legend(prop={'size':10})
-    plt.xlim([wavelengthRng[0], wavelengthRng[1]])
-    #plt.tight_layout()
+
 
 
 
@@ -222,8 +198,7 @@ for o in range(0,5):
     dataList.append(q)
     print(str(o), q.dataFile)
 #%%:
-ok so here is whats what: 
-    
+#ok so here is whats what: 
 
 #Cool back down after heated
 o=0
@@ -240,7 +215,7 @@ o=2
 fname = r"C:\Users\dmeichle\Documents\Micron Optics\ENLIGHT\Data\2020\11\Responses.20201106175305.txt"
 
 o=3
-junk
+#junk
 
 #cool from room to 77K
 o=4
@@ -289,7 +264,7 @@ plt.grid()
 
 
 colorTempPlot(data[0], lambda x:-1, skip = 10)
-plt.title("Cool from 293K")
+plt.title("Cool from 293 K to 77 K")
 plt.xlabel('Wavelength (nm)', fontsize = 14)
 plt.ylabel('Reflected Power (dB)', fontsize = 14)
 plt.grid()
@@ -301,12 +276,28 @@ plt.title("Heater Off")
 plt.xlabel('Wavelength (nm)', fontsize = 14)
 plt.ylabel('Reflected Power (dB)', fontsize = 14)
 plt.grid()
+#%%
+#make covariance matrix:
+d = q.data[1:-2,4000:5750]
 
+d -= np.min(d); d /= np.max(d)
+for l in d:
+    plt.plot(l)
+#%%
+c = np.cov( d )
+#%%
+data = [coolDown216, heaterOn, coolAfterHeat ]
 
-
-
-
-
+for (q, theTitle) in zip(data, titles):
+    d = q.data[:,4250:5650]
+    d -= np.min(d); d /= np.max(d)
+    c = np.cov( d ,rowvar = False )
+    plt.figure()
+    plt.imshow(c)
+    plt.title(theTitle)
+    plt.figure()
+    plt.title(theTitle)
+    q.colorTempPlot(skip=25)
 
 
 
